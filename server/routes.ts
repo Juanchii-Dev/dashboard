@@ -5,7 +5,7 @@ import OpenAI from "openai";
 
 // Inicializar OpenAI para el chatbot
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "sk-demo-key",
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {

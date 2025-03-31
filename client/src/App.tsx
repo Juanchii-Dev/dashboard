@@ -9,6 +9,7 @@ import Budgets from "@/pages/budgets";
 import Goals from "@/pages/goals";
 import Debts from "@/pages/debts";
 import Reports from "@/pages/reports";
+import Configuracion from "@/pages/configuracion";
 import { ThemeProvider } from "@/context/theme-context";
 import { SidebarProvider } from "@/context/sidebar-context";
 import { ChatProvider } from "@/context/chat-context";
@@ -26,6 +27,7 @@ function Router() {
       <Route path="/metas" component={Goals} />
       <Route path="/deudas" component={Debts} />
       <Route path="/informes" component={Reports} />
+      <Route path="/configuracion" component={Configuracion} />
       <Route component={NotFound} />
     </Switch>
   );

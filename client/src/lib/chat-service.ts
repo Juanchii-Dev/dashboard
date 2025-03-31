@@ -18,7 +18,16 @@ export async function sendChatMessage(message: string): Promise<string> {
     return data.response;
   } catch (error) {
     console.error("Error sending chat message:", error);
-    return mockChatResponse(message);
+    // Intentar un segundo intento con un timeout
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const retryResponse = await apiRequest("POST", "/api/chat", { message });
+      const retryData = await retryResponse.json();
+      return retryData.response;
+    } catch (retryError) {
+      console.error("Error en segundo intento:", retryError);
+      return mockChatResponse(message);
+    }
   }
 }
 
@@ -49,12 +58,12 @@ export async function getDashboardData(): Promise<DashboardData> {
         expenses: [2900, 3200, 2800, 3100, 2950, 2850]
       },
       expenseDistribution: [
-        { name: "Vivienda", value: 35 },
-        { name: "Alimentación", value: 25 },
-        { name: "Transporte", value: 15 },
-        { name: "Ocio", value: 10 },
-        { name: "Servicios", value: 10 },
-        { name: "Otros", value: 5 }
+        { name: "Vivienda", value: 35, color: "#4338ca" },
+        { name: "Alimentación", value: 25, color: "#16a34a" },
+        { name: "Transporte", value: 15, color: "#d97706" },
+        { name: "Ocio", value: 10, color: "#db2777" },
+        { name: "Servicios", value: 10, color: "#0ea5e9" },
+        { name: "Otros", value: 5, color: "#64748b" }
       ],
       budgets: [
         { id: "1", name: "Alimentación", spent: 450, limit: 600, category: "food" },

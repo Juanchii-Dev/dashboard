@@ -69,6 +69,7 @@ export function Navbar() {
               variant="ghost"
               size="icon"
               className="ml-2 p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary dark:focus:ring-offset-gray-800"
+              onClick={() => window.location.href = "/configuracion"}
             >
               <span className="sr-only">Ajustes</span>
               <Settings className="h-6 w-6" />
