@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/context/theme-context";
-import { Save, User, Bell, Lock, CreditCard, Euro, DollarSign, Languages, Building2 } from "lucide-react";
+import { Save, User, Bell, Lock, CreditCard, Euro, DollarSign, Languages, Building2, Settings, Calendar, BadgeDollarSign, CircleUserRound } from "lucide-react";
 import { BankConnectionsSection } from "@/components/bank-connection/bank-connections-section";
 
 export default function Configuracion() {
@@ -45,20 +45,40 @@ export default function Configuracion() {
         </div>
         
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-6 mb-8 overflow-x-auto">
-            <TabsTrigger value="general" className="text-sm">General</TabsTrigger>
-            <TabsTrigger value="cuenta" className="text-sm">Cuenta</TabsTrigger>
-            <TabsTrigger value="notificaciones" className="text-sm">Notificaciones</TabsTrigger>
-            <TabsTrigger value="seguridad" className="text-sm">Seguridad</TabsTrigger>
-            <TabsTrigger value="pagos" className="text-sm">Métodos de pago</TabsTrigger>
-            <TabsTrigger value="bank-connections" className="text-sm">
-              <div className="flex items-center gap-1.5">
+          <div className="mb-8 overflow-x-auto">
+            <TabsList className="inline-flex h-auto min-h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground w-full flex-wrap">
+              <TabsTrigger value="general" className="text-sm px-3 py-1.5 h-10 flex items-center gap-1.5">
+                <Settings className="h-4 w-4" />
+                <span className="hidden sm:inline">General</span>
+                <span className="sm:hidden">General</span>
+              </TabsTrigger>
+              <TabsTrigger value="cuenta" className="text-sm px-3 py-1.5 h-10 flex items-center gap-1.5">
+                <CircleUserRound className="h-4 w-4" />
+                <span className="hidden sm:inline">Cuenta</span>
+                <span className="sm:hidden">Cuenta</span>
+              </TabsTrigger>
+              <TabsTrigger value="notificaciones" className="text-sm px-3 py-1.5 h-10 flex items-center gap-1.5">
+                <Bell className="h-4 w-4" />
+                <span className="hidden sm:inline">Notificaciones</span>
+                <span className="sm:hidden">Alertas</span>
+              </TabsTrigger>
+              <TabsTrigger value="seguridad" className="text-sm px-3 py-1.5 h-10 flex items-center gap-1.5">
+                <Lock className="h-4 w-4" />
+                <span className="hidden sm:inline">Seguridad</span>
+                <span className="sm:hidden">Seguridad</span>
+              </TabsTrigger>
+              <TabsTrigger value="pagos" className="text-sm px-3 py-1.5 h-10 flex items-center gap-1.5">
+                <BadgeDollarSign className="h-4 w-4" />
+                <span className="hidden sm:inline">Métodos de pago</span>
+                <span className="sm:hidden">Pagos</span>
+              </TabsTrigger>
+              <TabsTrigger value="bank-connections" className="text-sm px-3 py-1.5 h-10 flex items-center gap-1.5">
                 <Building2 className="h-4 w-4" />
-                <span className="hidden md:inline">Conexiones bancarias</span>
-                <span className="md:hidden">Bancos</span>
-              </div>
-            </TabsTrigger>
-          </TabsList>
+                <span className="hidden sm:inline">Conexiones bancarias</span>
+                <span className="sm:hidden">Bancos</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
           
           {/* Pestaña General */}
           <TabsContent value="general">
