@@ -5,11 +5,37 @@ import { z } from "zod";
 // Tabla de usuarios
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
+  email: text("email").notNull().unique(),
   password: text("password").notNull(),
+  username: text("username").unique(),
   name: text("name"),
-  email: text("email").unique(),
-  created_at: timestamp("created_at").defaultNow(),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  last_login: timestamp("last_login"),
+  email_verified: boolean("email_verified").default(false).notNull(),
+  active: boolean("active").default(true).notNull(),
+  profile_image: text("profile_image"),
+});
+
+// Tabla de tokens de verificación
+export const verification_tokens = pgTable("verification_tokens", {
+  id: serial("id").primaryKey(),
+  user_id: integer("user_id").references(() => users.id).notNull(),
+  token: text("token").notNull().unique(),
+  type: text("type").notNull(), // email_verification, password_reset, two_factor
+  expires_at: timestamp("expires_at").notNull(),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  used: boolean("used").default(false).notNull(),
+});
+
+// Tabla de sesiones
+export const sessions = pgTable("sessions", {
+  id: serial("id").primaryKey(),
+  user_id: integer("user_id").references(() => users.id).notNull(),
+  token: text("token").notNull().unique(),
+  expires_at: timestamp("expires_at").notNull(),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  ip_address: text("ip_address"),
+  user_agent: text("user_agent"),
 });
 
 // Tabla de categorías
@@ -85,10 +111,67 @@ export const chat_messages = pgTable("chat_messages", {
 
 // Esquemas para inserción
 export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-  name: true,
   email: true,
+  password: true,
+  username: true,
+  name: true,
+});
+
+export const registerUserSchema = z.object({
+  email: z.string().email({ message: "El correo electrónico no es válido" }),
+  password: z.string().min(8, { message: "La contraseña debe tener al menos 8 caracteres" })
+    .regex(/[A-Z]/, { message: "La contraseña debe tener al menos una letra mayúscula" })
+    .regex(/[a-z]/, { message: "La contraseña debe tener al menos una letra minúscula" })
+    .regex(/[0-9]/, { message: "La contraseña debe tener al menos un número" })
+    .regex(/[^A-Za-z0-9]/, { message: "La contraseña debe tener al menos un carácter especial" }),
+  confirmPassword: z.string(),
+  username: z.string().min(3, { message: "El nombre de usuario debe tener al menos 3 caracteres" }).optional(),
+  name: z.string().optional(),
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Las contraseñas no coinciden",
+  path: ["confirmPassword"],
+});
+
+export const loginSchema = z.object({
+  email: z.string().email({ message: "El correo electrónico no es válido" }),
+  password: z.string().min(1, { message: "La contraseña es requerida" }),
+});
+
+export const twoFactorSchema = z.object({
+  email: z.string().email(),
+  code: z.string().length(6, { message: "El código debe tener 6 dígitos" }),
+});
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().email({ message: "El correo electrónico no es válido" }),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string(),
+  password: z.string().min(8, { message: "La contraseña debe tener al menos 8 caracteres" })
+    .regex(/[A-Z]/, { message: "La contraseña debe tener al menos una letra mayúscula" })
+    .regex(/[a-z]/, { message: "La contraseña debe tener al menos una letra minúscula" })
+    .regex(/[0-9]/, { message: "La contraseña debe tener al menos un número" })
+    .regex(/[^A-Za-z0-9]/, { message: "La contraseña debe tener al menos un carácter especial" }),
+  confirmPassword: z.string(),
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Las contraseñas no coinciden",
+  path: ["confirmPassword"],
+});
+
+export const insertVerificationTokenSchema = createInsertSchema(verification_tokens).pick({
+  user_id: true,
+  token: true,
+  type: true,
+  expires_at: true,
+});
+
+export const insertSessionSchema = createInsertSchema(sessions).pick({
+  user_id: true,
+  token: true,
+  expires_at: true,
+  ip_address: true,
+  user_agent: true,
 });
 
 export const insertCategorySchema = createInsertSchema(categories).pick({
@@ -152,6 +235,15 @@ export const insertChatMessageSchema = createInsertSchema(chat_messages).pick({
 // Tipos para la aplicación
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type RegisterUser = z.infer<typeof registerUserSchema>;
+export type Login = z.infer<typeof loginSchema>;
+export type TwoFactorAuth = z.infer<typeof twoFactorSchema>;
+export type ForgotPassword = z.infer<typeof forgotPasswordSchema>;
+export type ResetPassword = z.infer<typeof resetPasswordSchema>;
+export type VerificationToken = typeof verification_tokens.$inferSelect;
+export type InsertVerificationToken = z.infer<typeof insertVerificationTokenSchema>;
+export type Session = typeof sessions.$inferSelect;
+export type InsertSession = z.infer<typeof insertSessionSchema>;
 
 export type Category = typeof categories.$inferSelect;
 export type InsertCategory = z.infer<typeof insertCategorySchema>;

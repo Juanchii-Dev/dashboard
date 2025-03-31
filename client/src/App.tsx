@@ -8,6 +8,7 @@ import { SidebarProvider } from "@/context/sidebar-context";
 import { ChatProvider } from "@/context/chat-context";
 import { NotificationProvider } from "@/context/notification-context";
 import { WidgetProvider } from "@/context/widget-context";
+import { AuthProvider, ProtectedRoute, useAuth } from "@/context/auth-context";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
@@ -52,6 +53,10 @@ const Configuracion = lazy(() =>
     new Promise(resolve => setTimeout(resolve, 300))
   ]).then(([module]) => module)
 );
+const Login = lazy(() => import("@/pages/login"));
+const Registro = lazy(() => import("@/pages/registro"));
+const ResetPassword = lazy(() => import("@/pages/reset-password"));
+const VerificarEmail = lazy(() => import("@/pages/verificar-email"));
 
 // Componente de carga para mostrar durante la carga de componentes lazy
 function LoadingFallback() {
@@ -62,20 +67,50 @@ function LoadingFallback() {
   );
 }
 
+function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen font-inter bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-200">
+      <Sidebar />
+      <div className="lg:pl-64 flex flex-col min-h-screen">
+        <Navbar />
+        {children}
+        <Footer />
+      </div>
+      <ChatBot />
+    </div>
+  );
+}
+
+function PublicLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen font-inter bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-200">
+      <div className="flex flex-col min-h-screen">
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function Router() {
   const [location] = useLocation();
+  const { isAuthenticated } = useAuth();
   
   // Prefetching optimizado: precarga la página del dashboard 
   // y la página de configuración después de la carga inicial
   useEffect(() => {
     const timer = setTimeout(() => {
-      // Prefetch de páginas importantes
-      import("@/pages/dashboard");
-      import("@/pages/configuracion");
+      // Prefetch de páginas importantes si el usuario está autenticado
+      if (isAuthenticated) {
+        import("@/pages/dashboard");
+        import("@/pages/configuracion");
+      } else {
+        import("@/pages/login");
+        import("@/pages/registro");
+      }
     }, 2000);
     
     return () => clearTimeout(timer);
-  }, []);
+  }, [isAuthenticated]);
   
   // Historial de navegación con scroll restoration
   useEffect(() => {
@@ -108,23 +143,50 @@ function Router() {
     };
   }, [location]);
   
-  return (
-    <div className="page-transition-container">
-      <Suspense fallback={<LoadingFallback />}>
-        <div className="page-transition" key={location}>
-          <Switch>
-            <Route path="/" component={Dashboard} />
-            <Route path="/transacciones" component={Transactions} />
-            <Route path="/presupuestos" component={Budgets} />
-            <Route path="/metas" component={Goals} />
-            <Route path="/deudas" component={Debts} />
-            <Route path="/informes" component={Reports} />
-            <Route path="/configuracion" component={Configuracion} />
-            <Route component={NotFound} />
-          </Switch>
+  // Rutas públicas (no requieren autenticación)
+  if (location === "/login" || location === "/registro" || 
+      location.startsWith("/reset-password") || location.startsWith("/verificar-email")) {
+    return (
+      <PublicLayout>
+        <div className="page-transition-container">
+          <Suspense fallback={<LoadingFallback />}>
+            <div className="page-transition" key={location}>
+              <Switch>
+                <Route path="/login" component={Login} />
+                <Route path="/registro" component={Registro} />
+                <Route path="/reset-password" component={ResetPassword} />
+                <Route path="/verificar-email" component={VerificarEmail} />
+              </Switch>
+            </div>
+          </Suspense>
         </div>
-      </Suspense>
-    </div>
+      </PublicLayout>
+    );
+  }
+  
+  // Rutas protegidas (requieren autenticación)
+  return (
+    <ProtectedRoute>
+      <AuthenticatedLayout>
+        <div className="page-transition-container">
+          <Suspense fallback={<LoadingFallback />}>
+            <div className="page-transition" key={location}>
+              <Switch>
+                <Route path="/" component={Dashboard} />
+                <Route path="/dashboard" component={Dashboard} />
+                <Route path="/transacciones" component={Transactions} />
+                <Route path="/presupuestos" component={Budgets} />
+                <Route path="/metas" component={Goals} />
+                <Route path="/deudas" component={Debts} />
+                <Route path="/informes" component={Reports} />
+                <Route path="/configuracion" component={Configuracion} />
+                <Route component={NotFound} />
+              </Switch>
+            </div>
+          </Suspense>
+        </div>
+      </AuthenticatedLayout>
+    </ProtectedRoute>
   );
 }
 
@@ -132,24 +194,18 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <SidebarProvider>
-          <ChatProvider>
-            <NotificationProvider>
-              <WidgetProvider>
-                <div className="min-h-screen font-inter bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-200">
-                  <Sidebar />
-                  <div className="lg:pl-64 flex flex-col min-h-screen">
-                    <Navbar />
-                    <Router />
-                    <Footer />
-                  </div>
-                  <ChatBot />
-                </div>
-                <Toaster />
-              </WidgetProvider>
-            </NotificationProvider>
-          </ChatProvider>
-        </SidebarProvider>
+        <AuthProvider>
+          <SidebarProvider>
+            <ChatProvider>
+              <NotificationProvider>
+                <WidgetProvider>
+                  <Router />
+                  <Toaster />
+                </WidgetProvider>
+              </NotificationProvider>
+            </ChatProvider>
+          </SidebarProvider>
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

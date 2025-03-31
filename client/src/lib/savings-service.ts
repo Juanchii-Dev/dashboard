@@ -27,18 +27,14 @@ export async function generateSavingSuggestions(
       .join("\n");
     
     // Enviar al servidor para procesar con OpenAI
-    const response = await apiRequest("/api/savings-suggestions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    const data = await apiRequest(
+      "/api/savings-suggestions", 
+      "POST", 
+      {
         transactions: transactionContext,
         preferences: userPreferences
-      }),
-    });
-    
-    const data = await response.json();
+      }
+    );
     
     // Devolver las sugerencias con su formato original
     return data.suggestions;

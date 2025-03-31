@@ -43,10 +43,8 @@ export type BankConnectionStatus =
  */
 export async function getAvailableBankProviders(): Promise<BankProvider[]> {
   try {
-    return await apiRequest<BankProvider[]>({ 
-      url: "/api/bank/providers",
-      method: "GET"
-    });
+    const providers = await apiRequest("/api/bank/providers");
+    return providers;
   } catch (error) {
     console.error("Error al obtener proveedores bancarios:", error);
     return [];
@@ -60,11 +58,12 @@ export async function initiateConnectionWithBank(
   providerId: string
 ): Promise<{ connectionId: string; authUrl: string }> {
   try {
-    return await apiRequest<{ connectionId: string; authUrl: string }>({
-      url: "/api/bank/connect",
-      method: "POST",
-      data: { providerId }
-    });
+    const result = await apiRequest(
+      "/api/bank/connect", 
+      "POST", 
+      { providerId }
+    );
+    return result;
   } catch (error) {
     console.error("Error al iniciar conexión con banco:", error);
     throw new Error("No se pudo iniciar la conexión con el banco. Inténtalo de nuevo más tarde.");
@@ -79,11 +78,12 @@ export async function verifyBankConnection(
   authCode: string
 ): Promise<{ status: BankConnectionStatus; message?: string }> {
   try {
-    return await apiRequest<{ status: BankConnectionStatus; message?: string }>({
-      url: "/api/bank/verify",
-      method: "POST",
-      data: { connectionId, authCode }
-    });
+    const result = await apiRequest(
+      "/api/bank/verify", 
+      "POST", 
+      { connectionId, authCode }
+    );
+    return result;
   } catch (error) {
     console.error("Error al verificar conexión bancaria:", error);
     return { status: "error", message: "No se pudo verificar la conexión. Inténtalo de nuevo más tarde." };
@@ -95,10 +95,8 @@ export async function verifyBankConnection(
  */
 export async function getBankAccounts(): Promise<BankAccount[]> {
   try {
-    return await apiRequest<BankAccount[]>({
-      url: "/api/bank/accounts",
-      method: "GET"
-    });
+    const accounts = await apiRequest("/api/bank/accounts");
+    return accounts;
   } catch (error) {
     console.error("Error al obtener cuentas bancarias:", error);
     return [];
@@ -115,15 +113,8 @@ export async function synchronizeBankData(): Promise<{
   message?: string;
 }> {
   try {
-    return await apiRequest<{
-      success: boolean;
-      updatedAccounts: number;
-      newTransactions: number;
-      message?: string;
-    }>({
-      url: "/api/bank/sync",
-      method: "POST"
-    });
+    const result = await apiRequest("/api/bank/sync", "POST");
+    return result;
   } catch (error) {
     console.error("Error al sincronizar datos bancarios:", error);
     return {
@@ -140,11 +131,12 @@ export async function synchronizeBankData(): Promise<{
  */
 export async function disconnectBankAccount(accountId: string): Promise<{ success: boolean; message?: string }> {
   try {
-    return await apiRequest<{ success: boolean; message?: string }>({
-      url: "/api/bank/disconnect",
-      method: "POST",
-      data: { accountId }
-    });
+    const result = await apiRequest(
+      "/api/bank/disconnect", 
+      "POST", 
+      { accountId }
+    );
+    return result;
   } catch (error) {
     console.error("Error al desconectar cuenta bancaria:", error);
     return {
@@ -164,16 +156,9 @@ export async function getBankAccountTransactions(accountId: string, page = 1, li
   totalPages: number;
 }> {
   try {
-    return await apiRequest<{
-      transactions: any[];
-      total: number;
-      page: number;
-      totalPages: number;
-    }>({
-      url: "/api/bank/transactions",
-      method: "GET",
-      params: { accountId, page, limit }
-    });
+    const url = `/api/bank/transactions?accountId=${accountId}&page=${page}&limit=${limit}`;
+    const result = await apiRequest(url);
+    return result;
   } catch (error) {
     console.error("Error al obtener transacciones bancarias:", error);
     return {
@@ -190,10 +175,8 @@ export async function getBankAccountTransactions(accountId: string, page = 1, li
  */
 export async function getBankAccountDetails(accountId: string): Promise<BankAccount | null> {
   try {
-    return await apiRequest<BankAccount>({
-      url: `/api/bank/account/${accountId}`,
-      method: "GET"
-    });
+    const account = await apiRequest(`/api/bank/account/${accountId}`);
+    return account;
   } catch (error) {
     console.error("Error al obtener detalles de la cuenta bancaria:", error);
     return null;

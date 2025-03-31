@@ -6,6 +6,8 @@ import {
   goals, 
   debts_savings, 
   chat_messages,
+  verification_tokens,
+  sessions,
   type User, 
   type InsertUser,
   type Category,
@@ -19,15 +21,33 @@ import {
   type DebtSaving,
   type InsertDebtSaving,
   type ChatMessage,
-  type InsertChatMessage
+  type InsertChatMessage,
+  type VerificationToken,
+  type InsertVerificationToken,
+  type Session,
+  type InsertSession
 } from "@shared/schema";
 
 export interface IStorage {
   // Usuarios
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  authenticateUser(username: string, password: string): Promise<User | undefined>;
+  authenticateUser(email: string, password: string): Promise<User | undefined>;
+  updateUserEmailVerification(userId: number, verified: boolean): Promise<boolean>;
+  updateUserLastLogin(userId: number): Promise<boolean>;
+  updateUserPassword(userId: number, hashedPassword: string): Promise<boolean>;
+  
+  // Autenticación de tokens y sesiones
+  createVerificationToken(token: InsertVerificationToken): Promise<VerificationToken>;
+  getVerificationTokenByToken(token: string): Promise<VerificationToken | undefined>;
+  getVerificationTokenByUserAndType(userId: number, type: string): Promise<VerificationToken | undefined>;
+  markVerificationTokenAsUsed(tokenId: number): Promise<boolean>;
+  createSession(session: InsertSession): Promise<Session>;
+  getSessionByToken(token: string): Promise<Session | undefined>;
+  deleteSessionByToken(token: string): Promise<boolean>;
+  deleteUserSessions(userId: number): Promise<boolean>;
   
   // Categorías
   getCategories(userId: number): Promise<Category[]>;
@@ -71,6 +91,8 @@ export class MemStorage implements IStorage {
   private goalMap: Map<number, Goal>;
   private debtSavingMap: Map<number, DebtSaving>;
   private chatMessageMap: Map<number, ChatMessage>;
+  private verificationTokenMap: Map<number, VerificationToken>;
+  private sessionMap: Map<number, Session>;
   
   private userIdCounter: number;
   private categoryIdCounter: number;
@@ -79,6 +101,8 @@ export class MemStorage implements IStorage {
   private goalIdCounter: number;
   private debtSavingIdCounter: number;
   private chatMessageIdCounter: number;
+  private verificationTokenIdCounter: number;
+  private sessionIdCounter: number;
   
   constructor() {
     this.userMap = new Map();
@@ -88,6 +112,8 @@ export class MemStorage implements IStorage {
     this.goalMap = new Map();
     this.debtSavingMap = new Map();
     this.chatMessageMap = new Map();
+    this.verificationTokenMap = new Map();
+    this.sessionMap = new Map();
     
     this.userIdCounter = 1;
     this.categoryIdCounter = 1;
@@ -96,6 +122,8 @@ export class MemStorage implements IStorage {
     this.goalIdCounter = 1;
     this.debtSavingIdCounter = 1;
     this.chatMessageIdCounter = 1;
+    this.verificationTokenIdCounter = 1;
+    this.sessionIdCounter = 1;
     
     // Inicializar con datos de ejemplo
     this.initializeData();
@@ -128,6 +156,15 @@ export class MemStorage implements IStorage {
     return undefined;
   }
   
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    for (const user of this.userMap.values()) {
+      if (user.email === email) {
+        return user;
+      }
+    }
+    return undefined;
+  }
+  
   async createUser(userData: InsertUser): Promise<User> {
     const id = this.userIdCounter++;
     const now = new Date();
@@ -136,18 +173,163 @@ export class MemStorage implements IStorage {
       id,
       ...userData,
       created_at: now,
+      last_login: null,
+      email_verified: false,
+      active: true,
+      profile_image: null,
     };
     
     this.userMap.set(id, user);
     return user;
   }
   
-  async authenticateUser(username: string, password: string): Promise<User | undefined> {
-    const user = await this.getUserByUsername(username);
+  async authenticateUser(email: string, password: string): Promise<User | undefined> {
+    const user = await this.getUserByEmail(email);
     if (user && user.password === password) {
       return user;
     }
     return undefined;
+  }
+  
+  async updateUserEmailVerification(userId: number, verified: boolean): Promise<boolean> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      return false;
+    }
+    
+    const updatedUser: User = {
+      ...user,
+      email_verified: verified,
+    };
+    
+    this.userMap.set(userId, updatedUser);
+    return true;
+  }
+  
+  async updateUserLastLogin(userId: number): Promise<boolean> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      return false;
+    }
+    
+    const updatedUser: User = {
+      ...user,
+      last_login: new Date(),
+    };
+    
+    this.userMap.set(userId, updatedUser);
+    return true;
+  }
+  
+  async updateUserPassword(userId: number, hashedPassword: string): Promise<boolean> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      return false;
+    }
+    
+    const updatedUser: User = {
+      ...user,
+      password: hashedPassword,
+    };
+    
+    this.userMap.set(userId, updatedUser);
+    return true;
+  }
+  
+  // Implementación de métodos para tokens de verificación
+  async createVerificationToken(tokenData: InsertVerificationToken): Promise<VerificationToken> {
+    const id = this.verificationTokenIdCounter++;
+    
+    const token: VerificationToken = {
+      id,
+      ...tokenData,
+      created_at: new Date(),
+      used: false,
+    };
+    
+    this.verificationTokenMap.set(id, token);
+    return token;
+  }
+  
+  async getVerificationTokenByToken(token: string): Promise<VerificationToken | undefined> {
+    for (const verificationToken of this.verificationTokenMap.values()) {
+      if (verificationToken.token === token) {
+        return verificationToken;
+      }
+    }
+    return undefined;
+  }
+  
+  async getVerificationTokenByUserAndType(userId: number, type: string): Promise<VerificationToken | undefined> {
+    // Buscar el token más reciente de este tipo para este usuario
+    let latestToken: VerificationToken | undefined = undefined;
+    
+    for (const token of this.verificationTokenMap.values()) {
+      if (token.user_id === userId && token.type === type && !token.used) {
+        if (!latestToken || token.created_at > latestToken.created_at) {
+          latestToken = token;
+        }
+      }
+    }
+    
+    return latestToken;
+  }
+  
+  async markVerificationTokenAsUsed(tokenId: number): Promise<boolean> {
+    const token = this.verificationTokenMap.get(tokenId);
+    if (!token) {
+      return false;
+    }
+    
+    const updatedToken: VerificationToken = {
+      ...token,
+      used: true,
+    };
+    
+    this.verificationTokenMap.set(tokenId, updatedToken);
+    return true;
+  }
+  
+  // Implementación de métodos para sesiones
+  async createSession(sessionData: InsertSession): Promise<Session> {
+    const id = this.sessionIdCounter++;
+    
+    const session: Session = {
+      id,
+      ...sessionData,
+      created_at: new Date(),
+    };
+    
+    this.sessionMap.set(id, session);
+    return session;
+  }
+  
+  async getSessionByToken(token: string): Promise<Session | undefined> {
+    for (const session of this.sessionMap.values()) {
+      if (session.token === token) {
+        return session;
+      }
+    }
+    return undefined;
+  }
+  
+  async deleteSessionByToken(token: string): Promise<boolean> {
+    for (const [id, session] of this.sessionMap.entries()) {
+      if (session.token === token) {
+        this.sessionMap.delete(id);
+        return true;
+      }
+    }
+    return false;
+  }
+  
+  async deleteUserSessions(userId: number): Promise<boolean> {
+    for (const [id, session] of this.sessionMap.entries()) {
+      if (session.user_id === userId) {
+        this.sessionMap.delete(id);
+      }
+    }
+    return true;
   }
   
   // Implementación de métodos para categorías

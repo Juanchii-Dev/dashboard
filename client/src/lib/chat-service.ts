@@ -26,15 +26,11 @@ export async function sendChatMessage(message: string): Promise<string> {
         console.log(`Reintentando envío de mensaje (intento ${retryCount + 1})...`);
       }
       
-      const response = await apiRequest("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ message })
-      });
-      
-      const data = await response.json();
+      const data = await apiRequest(
+        "/api/chat", 
+        "POST", 
+        { message }
+      );
       return data.response;
     } catch (error) {
       console.error(`Error en intento ${retryCount + 1}:`, error);
@@ -71,8 +67,7 @@ export async function getDashboardData(): Promise<DashboardData> {
         console.log(`Reintentando obtener datos del dashboard (intento ${retryCount + 1})...`);
       }
       
-      const response = await apiRequest("/api/dashboard");
-      const data = await response.json();
+      const data = await apiRequest("/api/dashboard");
       return data;
     } catch (error) {
       console.error(`Error en intento ${retryCount + 1}:`, error);

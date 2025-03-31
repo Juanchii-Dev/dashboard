@@ -7,17 +7,43 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+// Obtener el token de autenticación para incluirlo en los headers
+function getAuthHeaders(): HeadersInit {
+  const token = localStorage.getItem("authToken");
+  return token ? { "Authorization": `Bearer ${token}` } : {};
+}
+
 export async function apiRequest(
   url: string,
-  options?: RequestInit,
-): Promise<Response> {
-  const res = await fetch(url, {
+  method: string = "GET",
+  data?: any,
+  customHeaders?: HeadersInit
+): Promise<any> {
+  const authHeaders = getAuthHeaders();
+  
+  const options: RequestInit = {
+    method,
     credentials: "include",
-    ...options
-  });
-
+    headers: {
+      ...authHeaders,
+      "Content-Type": "application/json",
+      ...customHeaders
+    }
+  };
+  
+  if (data && method !== "GET") {
+    options.body = JSON.stringify(data);
+  }
+  
+  const res = await fetch(url, options);
   await throwIfResNotOk(res);
-  return res;
+  
+  // Para métodos como DELETE o algunas peticiones que no devuelven contenido
+  if (res.status === 204) {
+    return null;
+  }
+  
+  return res.json().catch(() => null); // Si no es un JSON, devolver null
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -26,8 +52,11 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    const authHeaders = getAuthHeaders();
+    
     const res = await fetch(queryKey[0] as string, {
       credentials: "include",
+      headers: authHeaders
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {

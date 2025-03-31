@@ -1,9 +1,26 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
 import { ZodError } from "zod";
 import * as bankConnections from "./bank-connections";
+import { 
+  registerUserSchema, 
+  loginSchema, 
+  twoFactorSchema, 
+  forgotPasswordSchema, 
+  resetPasswordSchema 
+} from "@shared/schema";
+import * as authService from "./services/auth-service";
+
+// Extender Request de Express para incluir el usuario autenticado
+declare global {
+  namespace Express {
+    interface Request {
+      user?: any;
+    }
+  }
+}
 
 // Inicializar OpenAI para el chatbot
 // Comprobamos que la clave API exista o usamos un valor predeterminado
@@ -27,11 +44,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(400).json({ message: errorMessage });
   };
 
-  // Rutas API para usuarios
+  // Middleware para verificar la autenticación
+  const verifyAuth = (req: Request, res: Response, next: NextFunction) => {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: "Acceso no autorizado" });
+    }
+    
+    const token = authHeader.split(' ')[1];
+    const payload = authService.verifyJWT(token);
+    
+    if (!payload) {
+      return res.status(401).json({ message: "Token inválido o expirado" });
+    }
+    
+    req.user = payload;
+    next();
+  };
+
+  // Rutas de autenticación
   app.post("/api/register", async (req: Request, res: Response) => {
     try {
-      const user = await storage.createUser(req.body);
-      res.status(201).json(user);
+      const userData = registerUserSchema.parse(req.body);
+      const result = await authService.registerUser(storage, userData);
+      
+      res.status(201).json({
+        user: {
+          id: result.user.id,
+          email: result.user.email,
+          username: result.user.username,
+          name: result.user.name,
+          email_verified: result.user.email_verified
+        },
+        token: result.token,
+        message: "Usuario registrado exitosamente. Por favor verifica tu correo electrónico."
+      });
     } catch (error: unknown) {
       handleError(res, error);
     }
@@ -39,131 +87,237 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/login", async (req: Request, res: Response) => {
     try {
-      const { username, password } = req.body;
-      const user = await storage.authenticateUser(username, password);
-      if (!user) {
-        res.status(401).json({ message: "Credenciales inválidas" });
-        return;
+      const credentials = loginSchema.parse(req.body);
+      const { email, password } = credentials;
+      const ipAddress = req.ip;
+      const userAgent = req.headers["user-agent"];
+      
+      const result = await authService.loginUser(storage, email, password, ipAddress, userAgent);
+      
+      if (result.requireTwoFactor) {
+        return res.status(200).json({
+          requireTwoFactor: true,
+          message: "Se requiere verificación de dos factores. Se ha enviado un código a tu correo electrónico."
+        });
       }
-      res.status(200).json({ user });
+      
+      res.status(200).json({
+        user: {
+          id: result.user.id,
+          email: result.user.email,
+          username: result.user.username,
+          name: result.user.name,
+          email_verified: result.user.email_verified
+        },
+        token: result.token,
+        message: "Inicio de sesión exitoso"
+      });
+    } catch (error: unknown) {
+      handleError(res, error);
+    }
+  });
+
+  app.post("/api/verify-two-factor", async (req: Request, res: Response) => {
+    try {
+      const twoFactorData = twoFactorSchema.parse(req.body);
+      const result = await authService.verifyTwoFactorCode(
+        storage, 
+        twoFactorData.email, 
+        twoFactorData.code
+      );
+      
+      res.status(200).json({
+        user: {
+          id: result.user.id,
+          email: result.user.email,
+          username: result.user.username,
+          name: result.user.name,
+          email_verified: result.user.email_verified
+        },
+        token: result.token,
+        message: "Verificación exitosa"
+      });
+    } catch (error: unknown) {
+      handleError(res, error);
+    }
+  });
+
+  app.post("/api/verify-email", async (req: Request, res: Response) => {
+    try {
+      const { token } = req.body;
+      if (!token) {
+        return res.status(400).json({ message: "Token no proporcionado" });
+      }
+      
+      const success = await authService.verifyEmail(storage, token);
+      
+      if (!success) {
+        return res.status(400).json({ message: "Token inválido o expirado" });
+      }
+      
+      res.status(200).json({ message: "Email verificado exitosamente" });
+    } catch (error: unknown) {
+      handleError(res, error);
+    }
+  });
+
+  app.post("/api/forgot-password", async (req: Request, res: Response) => {
+    try {
+      const { email } = forgotPasswordSchema.parse(req.body);
+      
+      await authService.requestPasswordReset(storage, email);
+      
+      // Siempre devolver éxito aunque el correo no exista (seguridad)
+      res.status(200).json({ 
+        message: "Si el correo electrónico existe en nuestra base de datos, recibirás un enlace para restablecer tu contraseña" 
+      });
+    } catch (error: unknown) {
+      handleError(res, error);
+    }
+  });
+
+  app.post("/api/reset-password", async (req: Request, res: Response) => {
+    try {
+      const { token, password } = resetPasswordSchema.parse(req.body);
+      
+      const success = await authService.resetPassword(storage, token, password);
+      
+      if (!success) {
+        return res.status(400).json({ message: "Token inválido o expirado" });
+      }
+      
+      res.status(200).json({ message: "Contraseña restablecida exitosamente" });
+    } catch (error: unknown) {
+      handleError(res, error);
+    }
+  });
+
+  app.post("/api/logout", verifyAuth, async (req: Request, res: Response) => {
+    try {
+      const authHeader = req.headers.authorization;
+      const token = authHeader!.split(' ')[1];
+      
+      await authService.logoutUser(storage, token);
+      
+      res.status(200).json({ message: "Sesión cerrada exitosamente" });
     } catch (error: unknown) {
       handleError(res, error);
     }
   });
 
   // Rutas API para el dashboard
-  app.get("/api/dashboard", async (req, res) => {
+  app.get("/api/dashboard", verifyAuth, async (req: Request, res: Response) => {
     try {
-      // En una app real, obtendríamos el userId de la sesión
-      const userId = 1; // Usuario de ejemplo
+      // Obtenemos el userId del usuario autenticado
+      const userId = req.user.id; 
       const dashboardData = await storage.getDashboardData(userId);
       res.status(200).json(dashboardData);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
+    } catch (error: unknown) {
+      handleError(res, error);
     }
   });
 
   // Rutas API para transacciones
-  app.get("/api/transactions", async (req, res) => {
+  app.get("/api/transactions", verifyAuth, async (req: Request, res: Response) => {
     try {
-      const userId = 1; // Usuario de ejemplo
+      const userId = req.user.id;
       const transactions = await storage.getTransactions(userId);
       res.status(200).json(transactions);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
+    } catch (error: unknown) {
+      handleError(res, error);
     }
   });
 
-  app.post("/api/transactions", async (req, res) => {
+  app.post("/api/transactions", verifyAuth, async (req: Request, res: Response) => {
     try {
-      const userId = 1; // Usuario de ejemplo
+      const userId = req.user.id;
       const transaction = await storage.createTransaction({
         ...req.body,
         user_id: userId,
       });
       res.status(201).json(transaction);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
+    } catch (error: unknown) {
+      handleError(res, error);
     }
   });
 
   // Rutas API para presupuestos
-  app.get("/api/budgets", async (req, res) => {
+  app.get("/api/budgets", verifyAuth, async (req: Request, res: Response) => {
     try {
-      const userId = 1; // Usuario de ejemplo
+      const userId = req.user.id;
       const budgets = await storage.getBudgets(userId);
       res.status(200).json(budgets);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
+    } catch (error: unknown) {
+      handleError(res, error);
     }
   });
 
-  app.post("/api/budgets", async (req, res) => {
+  app.post("/api/budgets", verifyAuth, async (req: Request, res: Response) => {
     try {
-      const userId = 1; // Usuario de ejemplo
+      const userId = req.user.id;
       const budget = await storage.createBudget({
         ...req.body,
         user_id: userId,
       });
       res.status(201).json(budget);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
+    } catch (error: unknown) {
+      handleError(res, error);
     }
   });
 
   // Rutas API para metas financieras
-  app.get("/api/goals", async (req, res) => {
+  app.get("/api/goals", verifyAuth, async (req: Request, res: Response) => {
     try {
-      const userId = 1; // Usuario de ejemplo
+      const userId = req.user.id;
       const goals = await storage.getGoals(userId);
       res.status(200).json(goals);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
+    } catch (error: unknown) {
+      handleError(res, error);
     }
   });
 
-  app.post("/api/goals", async (req, res) => {
+  app.post("/api/goals", verifyAuth, async (req: Request, res: Response) => {
     try {
-      const userId = 1; // Usuario de ejemplo
+      const userId = req.user.id;
       const goal = await storage.createGoal({
         ...req.body,
         user_id: userId,
       });
       res.status(201).json(goal);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
+    } catch (error: unknown) {
+      handleError(res, error);
     }
   });
 
   // Rutas API para deudas y ahorros
-  app.get("/api/debts-savings", async (req, res) => {
+  app.get("/api/debts-savings", verifyAuth, async (req: Request, res: Response) => {
     try {
-      const userId = 1; // Usuario de ejemplo
+      const userId = req.user.id;
       const debtsSavings = await storage.getDebtsSavings(userId);
       res.status(200).json(debtsSavings);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
+    } catch (error: unknown) {
+      handleError(res, error);
     }
   });
 
-  app.post("/api/debts-savings", async (req, res) => {
+  app.post("/api/debts-savings", verifyAuth, async (req: Request, res: Response) => {
     try {
-      const userId = 1; // Usuario de ejemplo
+      const userId = req.user.id;
       const debtSaving = await storage.createDebtSaving({
         ...req.body,
         user_id: userId,
       });
       res.status(201).json(debtSaving);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
+    } catch (error: unknown) {
+      handleError(res, error);
     }
   });
 
   // Ruta API para el chatbot
-  app.post("/api/chat", async (req: Request, res: Response) => {
+  app.post("/api/chat", verifyAuth, async (req: Request, res: Response) => {
     try {
       const { message } = req.body;
-      const userId = 1; // Usuario de ejemplo
+      const userId = req.user.id;
 
       // Almacenar mensaje del usuario
       await storage.createChatMessage({
@@ -216,7 +370,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Nueva ruta para generar sugerencias de ahorro con OpenAI
-  app.post("/api/savings-suggestions", async (req: Request, res: Response) => {
+  app.post("/api/savings-suggestions", verifyAuth, async (req: Request, res: Response) => {
     try {
       const { transactions, preferences } = req.body;
       
@@ -273,15 +427,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Rutas para API de conexión bancaria
+  // Rutas para API de conexión bancaria - Aplicamos autenticación a todas excepto obtener proveedores
   app.get("/api/bank/providers", bankConnections.getProviders);
-  app.post("/api/bank/connect", bankConnections.connectToBank);
-  app.post("/api/bank/verify", bankConnections.verifyConnection);
-  app.get("/api/bank/accounts", bankConnections.getAccounts);
-  app.post("/api/bank/sync", bankConnections.syncBankData);
-  app.post("/api/bank/disconnect", bankConnections.disconnectAccount);
-  app.get("/api/bank/account/:accountId", bankConnections.getAccountDetails);
-  app.get("/api/bank/transactions", bankConnections.getAccountTransactions);
+  app.post("/api/bank/connect", verifyAuth, (req, res, next) => {
+    req.body.userId = req.user.id;
+    next();
+  }, bankConnections.connectToBank);
+  app.post("/api/bank/verify", verifyAuth, (req, res, next) => {
+    req.body.userId = req.user.id;
+    next();
+  }, bankConnections.verifyConnection);
+  app.get("/api/bank/accounts", verifyAuth, (req, res, next) => {
+    req.query.userId = req.user.id.toString();
+    next();
+  }, bankConnections.getAccounts);
+  app.post("/api/bank/sync", verifyAuth, (req, res, next) => {
+    req.body.userId = req.user.id;
+    next();
+  }, bankConnections.syncBankData);
+  app.post("/api/bank/disconnect", verifyAuth, (req, res, next) => {
+    req.body.userId = req.user.id;
+    next();
+  }, bankConnections.disconnectAccount);
+  app.get("/api/bank/account/:accountId", verifyAuth, (req, res, next) => {
+    req.query.userId = req.user.id.toString();
+    next();
+  }, bankConnections.getAccountDetails);
+  app.get("/api/bank/transactions", verifyAuth, (req, res, next) => {
+    req.query.userId = req.user.id.toString();
+    next();
+  }, bankConnections.getAccountTransactions);
 
   const httpServer = createServer(app);
   return httpServer;
