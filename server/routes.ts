@@ -213,6 +213,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
       handleError(res, error);
     }
   });
+  
+  // Nueva ruta para generar sugerencias de ahorro con OpenAI
+  app.post("/api/savings-suggestions", async (req: Request, res: Response) => {
+    try {
+      const { transactions, preferences } = req.body;
+      
+      // Si no hay API key o es demo, devolvemos datos de ejemplo
+      if (!openai.apiKey || openai.apiKey === "sk-demo-key") {
+        return res.status(200).json({
+          suggestions: getMockSavingSuggestions()
+        });
+      }
+      
+      try {
+        // Usar OpenAI para generar sugerencias personalizadas
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: `Eres un asesor financiero experto que analiza patrones de gasto para ofrecer consejos personalizados de ahorro.
+              Debes generar 5 sugerencias de ahorro en base a las transacciones proporcionadas.
+              Para cada sugerencia, debes indicar: un título corto, una descripción más detallada, el ahorro potencial mensual en euros,
+              nivel de dificultad (easy, medium, hard) y categoría (subscriptions, habits, expenses, strategies).
+              También sugiere un tipo de icono para cada sugerencia que sea relevante. Responde solo en formato JSON.`
+            },
+            {
+              role: "user",
+              content: `Analiza estas transacciones y sugiere formas de ahorrar dinero:\n${transactions}`
+            }
+          ],
+          response_format: { type: "json_object" }
+        });
+
+        if (!response.choices[0]?.message?.content) {
+          throw new Error("No se recibió respuesta de OpenAI");
+        }
+        
+        const result = JSON.parse(response.choices[0].message.content);
+        
+        // Asignar IDs a las sugerencias si es necesario
+        const suggestions = result.suggestions?.map((suggestion: any, index: number) => ({
+          id: `ai-suggestion-${index + 1}`,
+          ...suggestion
+        })) || [];
+        
+        return res.status(200).json({ suggestions });
+      } catch (error: unknown) {
+        console.error("Error generando sugerencias con OpenAI:", error);
+        // En caso de error, devolver ejemplos
+        return res.status(200).json({
+          suggestions: getMockSavingSuggestions()
+        });
+      }
+    } catch (error: unknown) {
+      handleError(res, error);
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
@@ -235,4 +293,55 @@ function getDefaultBotResponse(message: string): string {
   } else {
     return "Gracias por tu mensaje. ¿Puedes ser más específico sobre qué aspecto de tus finanzas te gustaría que te ayudara? Puedo aconsejarte sobre ahorro, deudas, inversiones, presupuestos o metas financieras.";
   }
+}
+
+// Función para generar sugerencias de ahorro cuando no hay OpenAI
+function getMockSavingSuggestions() {
+  return [
+    {
+      id: "1",
+      title: "Cancela suscripciones sin usar",
+      description: "Identificamos 2 suscripciones con poco uso que podrías cancelar para ahorrar mensualmente.",
+      potentialSaving: 24.99,
+      difficulty: "easy",
+      category: "subscriptions",
+      iconType: "dollar"
+    },
+    {
+      id: "2",
+      title: "Reduce gastos en café",
+      description: "Preparando café en casa en lugar de comprarlo fuera podrías ahorrar significativamente.",
+      potentialSaving: 45.50,
+      difficulty: "medium",
+      category: "habits",
+      iconType: "coffee"
+    },
+    {
+      id: "3",
+      title: "Compara precios de supermercados",
+      description: "Usando aplicaciones de comparación de precios podrías ahorrar en tu compra semanal.",
+      potentialSaving: 60.00,
+      difficulty: "medium",
+      category: "expenses",
+      iconType: "shopping"
+    },
+    {
+      id: "4",
+      title: "Refinancia tu préstamo hipotecario",
+      description: "Con las tasas actuales, refinanciar podría ahorrarte a largo plazo.",
+      potentialSaving: 150.00,
+      difficulty: "hard",
+      category: "strategies",
+      iconType: "home"
+    },
+    {
+      id: "5",
+      title: "Automatiza transferencias a ahorro",
+      description: "Configurar transferencias automáticas el día de cobro te ayudará a ahorrar sin pensarlo.",
+      potentialSaving: 200.00,
+      difficulty: "easy",
+      category: "strategies",
+      iconType: "trending"
+    }
+  ];
 }

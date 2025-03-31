@@ -1,13 +1,6 @@
-import OpenAI from "openai";
 import { Transaction } from "@/types/finance";
 import { toast } from "@/hooks/use-toast";
-
-// Inicializar cliente de OpenAI
-// Nota: el modelo más reciente es "gpt-4o" que se lanzó después de tu fecha de corte. Siempre usa gpt-4o ya que es el último modelo.
-const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY as string,
-  dangerouslyAllowBrowser: true
-});
+import { apiRequest } from "./queryClient";
 
 export interface SavingsSuggestion {
   id: string;
@@ -27,44 +20,28 @@ export async function generateSavingSuggestions(
   userPreferences?: any
 ): Promise<SavingsSuggestion[]> {
   try {
-    // Si no hay API key o estamos en desarrollo, usamos datos dummy
-    if (!process.env.OPENAI_API_KEY) {
-      return getMockSavingSuggestions();
-    }
-    
     // Preparar el contexto para la API
     const transactionContext = transactions
       .slice(0, 20)
       .map(t => `${t.description}: ${t.amount}€ (${t.date})`)
       .join("\n");
     
-    // Generar sugerencias usando OpenAI
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: `Eres un asesor financiero experto que analiza patrones de gasto para ofrecer consejos personalizados de ahorro.
-          Debes generar 5 sugerencias de ahorro en base a las transacciones proporcionadas.
-          Para cada sugerencia, debes indicar: un título corto, una descripción más detallada, el ahorro potencial mensual en euros,
-          nivel de dificultad (easy, medium, hard) y categoría (subscriptions, habits, expenses, strategies).
-          También sugiere un tipo de icono para cada sugerencia que sea relevante. Responde solo en formato JSON.`
-        },
-        {
-          role: "user",
-          content: `Analiza estas transacciones y sugiere formas de ahorrar dinero:\n${transactionContext}`
-        }
-      ],
-      response_format: { type: "json_object" }
+    // Enviar al servidor para procesar con OpenAI
+    const response = await apiRequest("/api/savings-suggestions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        transactions: transactionContext,
+        preferences: userPreferences
+      }),
     });
-
-    const result = JSON.parse(response.choices[0].message.content);
     
-    // Asignar IDs a las sugerencias
-    return result.suggestions.map((suggestion: any, index: number) => ({
-      id: `ai-suggestion-${index + 1}`,
-      ...suggestion
-    }));
+    const data = await response.json();
+    
+    // Devolver las sugerencias con su formato original
+    return data.suggestions;
   } catch (error) {
     console.error("Error generando sugerencias de ahorro:", error);
     toast({
