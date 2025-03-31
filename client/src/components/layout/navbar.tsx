@@ -1,13 +1,16 @@
 import { useSidebar } from "@/context/sidebar-context";
 import { useChat } from "@/context/chat-context";
+import { useNotifications } from "@/context/notification-context";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NotificationCenter } from "@/components/ui/notification-center";
 import { Menu, Bell, Settings, MessageSquare } from "lucide-react";
 
 export function Navbar() {
   const { toggle } = useSidebar();
   const { toggleChat } = useChat();
+  const { notifications, markAsRead, deleteNotification, clearAll } = useNotifications();
 
   return (
     <header className="sticky top-0 z-40 bg-white dark:bg-gray-800 shadow">
@@ -54,15 +57,12 @@ export function Navbar() {
             </div>
 
             {/* Notifications */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary dark:focus:ring-offset-gray-800 relative"
-            >
-              <span className="sr-only">Ver notificaciones</span>
-              <Bell className="h-6 w-6" />
-              <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-red-500"></span>
-            </Button>
+            <NotificationCenter 
+              notifications={notifications}
+              onMarkAsRead={markAsRead}
+              onDeleteNotification={deleteNotification}
+              onClearAll={clearAll}
+            />
 
             {/* Settings */}
             <Button

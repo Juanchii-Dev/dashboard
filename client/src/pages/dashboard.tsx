@@ -1,34 +1,188 @@
 import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FinancialCard } from "@/components/dashboard/financial-card";
-import { BudgetItem } from "@/components/dashboard/budget-item";
-import { FinancialGoal } from "@/components/dashboard/financial-goal";
-import { TransactionItem } from "@/components/dashboard/transaction-item";
-import { IncomeExpenseChart } from "@/components/dashboard/charts/income-expense-chart";
-import { ExpenseDistributionChart } from "@/components/dashboard/charts/expense-distribution-chart";
 import { TransactionForm } from "@/components/forms/transaction-form";
 import { BudgetForm } from "@/components/forms/budget-form";
 import { GoalForm } from "@/components/forms/goal-form";
 import { getDashboardData } from "@/lib/chat-service";
 import { 
-  Wallet, 
-  ArrowDown, 
-  ArrowUp, 
-  PiggyBank, 
   Settings, 
   RefreshCcw,
-  Plane,
-  Car,
-  GraduationCap,
-  ShoppingCart,
-  Building,
-  Utensils,
-  Smartphone,
-  Fuel,
-  Plus
+  Plus,
+  Grid3X3,
+  PencilLine,
+  RotateCcw,
+  Layers
 } from "lucide-react";
 import { DashboardData, ExpenseCategory } from "@/types/finance";
+import { useWidgets, Widget } from "@/context/widget-context";
+import { WidgetRenderer } from "@/components/dashboard/widget-renderer";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "@/hooks/use-toast";
+
+interface WidgetDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+function WidgetCustomizationDialog({ isOpen, onClose }: WidgetDialogProps) {
+  const { widgets, addWidget, updateWidget, resetToDefault } = useWidgets();
+  const [activeTab, setActiveTab] = useState<string>("current");
+  
+  // Obtener los widgets visibles y ocultos
+  const visibleWidgets = widgets.filter(w => w.visible);
+  const hiddenWidgets = widgets.filter(w => !w.visible);
+  
+  // Manejador para cambiar la visibilidad de un widget
+  const toggleWidgetVisibility = (id: string, visible: boolean) => {
+    updateWidget(id, { visible });
+  };
+  
+  // Manejador para cambiar el tamaño de un widget
+  const changeWidgetSize = (id: string, size: Widget["size"]) => {
+    updateWidget(id, { size });
+  };
+  
+  // Restaurar configuración por defecto
+  const handleReset = () => {
+    resetToDefault();
+    toast({
+      title: "Configuración restablecida",
+      description: "Se ha restaurado la configuración por defecto del dashboard",
+    });
+  };
+  
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Personalizar Panel</DialogTitle>
+          <DialogDescription>
+            Configura qué widgets quieres ver en tu dashboard y cómo quieres organizarlos.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
+          <TabsList className="grid grid-cols-2 w-full">
+            <TabsTrigger value="current">Widgets Actuales</TabsTrigger>
+            <TabsTrigger value="hidden">Widgets Disponibles</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="current" className="space-y-4 pt-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-medium">Widgets Visibles ({visibleWidgets.length})</h2>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleReset}
+                className="flex items-center gap-1"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Restaurar predeterminados
+              </Button>
+            </div>
+            
+            {visibleWidgets.length === 0 ? (
+              <div className="py-10 text-center border rounded-md bg-muted/20">
+                <p className="text-muted-foreground">No hay widgets visibles. Añade algunos desde la pestaña Widgets Disponibles.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {visibleWidgets
+                  .sort((a, b) => a.position - b.position)
+                  .map(widget => (
+                    <Card key={widget.id} className="overflow-hidden">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2">
+                            <Checkbox 
+                              id={`visible-${widget.id}`} 
+                              checked={widget.visible}
+                              onCheckedChange={(checked) => toggleWidgetVisibility(widget.id, checked as boolean)}
+                            />
+                            <Label htmlFor={`visible-${widget.id}`} className="font-medium">{widget.title}</Label>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <Select 
+                              value={widget.size} 
+                              onValueChange={(value) => changeWidgetSize(widget.id, value as Widget["size"])}
+                            >
+                              <SelectTrigger className="w-[120px] h-8">
+                                <SelectValue placeholder="Tamaño" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="small">Pequeño</SelectItem>
+                                <SelectItem value="medium">Mediano</SelectItem>
+                                <SelectItem value="large">Grande</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => toggleWidgetVisibility(widget.id, false)}
+                            >
+                              Ocultar
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="hidden" className="space-y-4 pt-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-medium">Widgets Disponibles ({hiddenWidgets.length})</h2>
+            </div>
+            
+            {hiddenWidgets.length === 0 ? (
+              <div className="py-10 text-center border rounded-md bg-muted/20">
+                <p className="text-muted-foreground">No hay widgets ocultos. Todos los widgets están visibles en el dashboard.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {hiddenWidgets
+                  .sort((a, b) => a.position - b.position)
+                  .map(widget => (
+                    <Card key={widget.id} className="overflow-hidden">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-2">
+                            <Checkbox 
+                              id={`hidden-${widget.id}`} 
+                              checked={widget.visible}
+                              onCheckedChange={(checked) => toggleWidgetVisibility(widget.id, checked as boolean)}
+                            />
+                            <Label htmlFor={`hidden-${widget.id}`} className="font-medium">{widget.title}</Label>
+                          </div>
+                          
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => toggleWidgetVisibility(widget.id, true)}
+                          >
+                            Mostrar
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function Dashboard() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
@@ -36,6 +190,8 @@ export default function Dashboard() {
   const [isTransactionFormOpen, setIsTransactionFormOpen] = useState(false);
   const [isBudgetFormOpen, setIsBudgetFormOpen] = useState(false);
   const [isGoalFormOpen, setIsGoalFormOpen] = useState(false);
+  const [isWidgetDialogOpen, setIsWidgetDialogOpen] = useState(false);
+  const { widgets, updateWidget } = useWidgets();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -52,22 +208,20 @@ export default function Dashboard() {
     fetchData();
   }, []);
 
-  // Income expense chart data
-  const incomeExpenseData = {
-    labels: ["Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre"],
-    income: [3800, 4100, 3950, 4300, 4200, 4500],
-    expenses: [2900, 3200, 2800, 3100, 2950, 2850],
+  // Filtrar los widgets visibles y ordenar por posición
+  const visibleWidgets = widgets
+    .filter(widget => widget.visible)
+    .sort((a, b) => a.position - b.position);
+
+  // Manejador para eliminar un widget (cambia visibilidad a false)
+  const handleRemoveWidget = (id: string) => {
+    updateWidget(id, { visible: false });
   };
 
-  // Expense distribution data
-  const expenseDistributionData: ExpenseCategory[] = [
-    { name: "Vivienda", value: 35, color: "rgba(59, 130, 246, 0.8)" },
-    { name: "Alimentación", value: 25, color: "rgba(34, 197, 94, 0.8)" },
-    { name: "Transporte", value: 15, color: "rgba(245, 158, 11, 0.8)" },
-    { name: "Ocio", value: 10, color: "rgba(124, 58, 237, 0.8)" },
-    { name: "Servicios", value: 10, color: "rgba(236, 72, 153, 0.8)" },
-    { name: "Otros", value: 5, color: "rgba(107, 114, 128, 0.8)" },
-  ];
+  // Manejador para cambiar el tamaño de un widget
+  const handleSizeChange = (id: string, size: Widget["size"]) => {
+    updateWidget(id, { size });
+  };
 
   if (loading) {
     return (
@@ -81,202 +235,84 @@ export default function Dashboard() {
     <>
       <main className="flex-1 pb-8 page-content">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          {/* Encabezado con botones de acción */}
           <div className="lg:flex lg:items-center lg:justify-between mb-6">
             <div className="flex-1 min-w-0">
-              <h2 className="text-2xl font-bold leading-7 font-montserrat text-gray-900 dark:text-white sm:text-3xl sm:truncate">
+              <h2 className="text-2xl font-bold leading-7 text-gray-900 dark:text-white sm:text-3xl sm:truncate">
                 Panel Principal
               </h2>
             </div>
-            <div className="mt-5 flex lg:mt-0 lg:ml-4">
-              <span className="hidden sm:block">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary dark:focus:ring-offset-gray-800"
-                >
-                  <Settings className="mr-2 h-4 w-4 text-gray-500 dark:text-gray-400" />
-                  Personalizar panel
-                </Button>
-              </span>
-              <span className="ml-3 hidden sm:block">
-                <Button
-                  size="sm"
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary dark:focus:ring-offset-gray-800"
-                >
-                  <RefreshCcw className="mr-2 h-4 w-4" />
-                  Actualizar datos
-                </Button>
-              </span>
+            <div className="mt-5 flex flex-wrap gap-2 lg:mt-0 lg:ml-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsWidgetDialogOpen(true)}
+                className="inline-flex items-center"
+              >
+                <Grid3X3 className="mr-2 h-4 w-4" />
+                Personalizar panel
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => window.location.reload()}
+                className="inline-flex items-center"
+              >
+                <RefreshCcw className="mr-2 h-4 w-4" />
+                Actualizar datos
+              </Button>
             </div>
           </div>
 
-          {/* Financial summary cards */}
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            <FinancialCard
-              title="Balance total"
-              amount={15300}
-              icon={Wallet}
-              iconColor="text-primary-600 dark:text-primary-400"
-              iconBgColor="bg-primary-500/10 dark:bg-primary-500/20"
-            />
-            <FinancialCard
-              title="Ingresos (este mes)"
-              amount={4500}
-              icon={ArrowDown}
-              iconColor="text-green-600 dark:text-green-400"
-              iconBgColor="bg-green-500/10 dark:bg-green-500/20"
-            />
-            <FinancialCard
-              title="Gastos (este mes)"
-              amount={2850}
-              icon={ArrowUp}
-              iconColor="text-red-600 dark:text-red-400"
-              iconBgColor="bg-red-500/10 dark:bg-red-500/20"
-            />
-            <FinancialCard
-              title="Ahorro (este mes)"
-              amount={1650}
-              icon={PiggyBank}
-              iconColor="text-yellow-600 dark:text-yellow-400"
-              iconBgColor="bg-yellow-500/10 dark:bg-yellow-500/20"
-            />
+          {/* Dashboard de widgets */}
+          <div className="grid grid-cols-12 gap-4">
+            {visibleWidgets.length === 0 ? (
+              <div className="col-span-12 py-20 flex flex-col items-center justify-center text-center border rounded-md bg-muted/20">
+                <Layers className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-xl font-medium mb-2">No hay widgets configurados</h3>
+                <p className="text-muted-foreground mb-4 max-w-md">
+                  Tu dashboard está vacío. Personaliza tu experiencia añadiendo algunos widgets para monitorizar tus finanzas.
+                </p>
+                <Button onClick={() => setIsWidgetDialogOpen(true)}>
+                  <PencilLine className="mr-2 h-4 w-4" />
+                  Personalizar widgets
+                </Button>
+              </div>
+            ) : (
+              visibleWidgets.map((widget) => (
+                <WidgetRenderer
+                  key={widget.id}
+                  widget={widget}
+                  onRemove={handleRemoveWidget}
+                  onSizeChange={handleSizeChange}
+                  isDraggable={false}
+                />
+              ))
+            )}
           </div>
 
-          {/* Charts and data widgets */}
-          <div className="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-2">
-            <IncomeExpenseChart data={incomeExpenseData} />
-            <ExpenseDistributionChart data={expenseDistributionData} />
-          </div>
-
-          {/* Bottom section: Budgets, Goals, Transactions */}
-          <div className="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-3">
-            {/* Presupuestos */}
-            <Card className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Presupuestos</h3>
-                  <a
-                    href="/presupuestos"
-                    className="text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300"
-                  >
-                    Ver todos
-                  </a>
-                </div>
-                <div className="mt-5 space-y-6">
-                  <BudgetItem name="Alimentación" spent={450} limit={600} />
-                  <BudgetItem name="Transporte" spent={320} limit={300} />
-                  <BudgetItem name="Ocio" spent={170} limit={250} />
-                  <BudgetItem name="Servicios" spent={220} limit={200} />
-                </div>
-              </CardContent>
-              <CardFooter className="bg-gray-50 dark:bg-gray-700 px-5 py-3">
-                <Button className="w-full" onClick={() => setIsBudgetFormOpen(true)}>Crear nuevo presupuesto</Button>
-              </CardFooter>
-            </Card>
-
-            {/* Metas financieras */}
-            <Card className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Metas financieras</h3>
-                  <a
-                    href="/metas"
-                    className="text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300"
-                  >
-                    Ver todas
-                  </a>
-                </div>
-                <div className="mt-5 space-y-5">
-                  <FinancialGoal
-                    title="Vacaciones"
-                    current={1500}
-                    target={2500}
-                    icon={Plane}
-                    iconColor="text-yellow-600 dark:text-yellow-400"
-                    iconBgColor="bg-yellow-500/10 dark:bg-yellow-500/20"
-                  />
-                  <FinancialGoal
-                    title="Nuevo coche"
-                    current={3200}
-                    target={15000}
-                    icon={Car}
-                    iconColor="text-primary-600 dark:text-primary-400"
-                    iconBgColor="bg-primary-500/10 dark:bg-primary-500/20"
-                  />
-                  <FinancialGoal
-                    title="Curso de formación"
-                    current={800}
-                    target={1200}
-                    icon={GraduationCap}
-                    iconColor="text-teal-600 dark:text-teal-400"
-                    iconBgColor="bg-teal-500/10 dark:bg-teal-500/20"
-                  />
-                </div>
-              </CardContent>
-              <CardFooter className="bg-gray-50 dark:bg-gray-700 px-5 py-3">
-                <Button className="w-full" onClick={() => setIsGoalFormOpen(true)}>Añadir nueva meta</Button>
-              </CardFooter>
-            </Card>
-
-            {/* Últimas transacciones */}
-            <Card className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Últimas transacciones</h3>
-                  <a
-                    href="/transacciones"
-                    className="text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300"
-                  >
-                    Ver todas
-                  </a>
-                </div>
-                <div className="mt-5 space-y-3">
-                  <TransactionItem
-                    title="Supermercado El Corte"
-                    date={new Date()}
-                    amount={85.2}
-                    type="expense"
-                    icon={ShoppingCart}
-                  />
-                  <TransactionItem
-                    title="Nómina Empresa S.L."
-                    date={new Date(Date.now() - 86400000)} // yesterday
-                    amount={1500}
-                    type="income"
-                    icon={Building}
-                  />
-                  <TransactionItem
-                    title="Restaurante La Mesa"
-                    date="2023-10-21T21:45:00"
-                    amount={56.8}
-                    type="expense"
-                    icon={Utensils}
-                  />
-                  <TransactionItem
-                    title="Factura Telefónica"
-                    date="2023-10-20T08:00:00"
-                    amount={42.99}
-                    type="expense"
-                    icon={Smartphone}
-                  />
-                  <TransactionItem
-                    title="Gasolinera Repsol"
-                    date="2023-10-19T17:25:00"
-                    amount={70.15}
-                    type="expense"
-                    icon={Fuel}
-                  />
-                </div>
-              </CardContent>
-              <CardFooter className="bg-gray-50 dark:bg-gray-700 px-5 py-3">
-                <Button className="w-full" onClick={() => setIsTransactionFormOpen(true)}>Registrar transacción</Button>
-              </CardFooter>
-            </Card>
+          {/* Botones para acciones rápidas en la parte inferior */}
+          <div className="mt-8 flex justify-center space-x-4">
+            <Button onClick={() => setIsTransactionFormOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Registrar transacción
+            </Button>
+            <Button variant="outline" onClick={() => setIsBudgetFormOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nuevo presupuesto
+            </Button>
+            <Button variant="outline" onClick={() => setIsGoalFormOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nueva meta
+            </Button>
           </div>
         </div>
       </main>
 
-      {/* Formularios modales */}
+      {/* Diálogos modales */}
+      <WidgetCustomizationDialog 
+        isOpen={isWidgetDialogOpen} 
+        onClose={() => setIsWidgetDialogOpen(false)} 
+      />
       <TransactionForm 
         isOpen={isTransactionFormOpen} 
         onClose={() => setIsTransactionFormOpen(false)} 

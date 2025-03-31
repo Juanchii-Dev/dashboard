@@ -6,6 +6,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/context/theme-context";
 import { SidebarProvider } from "@/context/sidebar-context";
 import { ChatProvider } from "@/context/chat-context";
+import { NotificationProvider } from "@/context/notification-context";
+import { WidgetProvider } from "@/context/widget-context";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
@@ -55,16 +57,20 @@ function App() {
       <ThemeProvider>
         <SidebarProvider>
           <ChatProvider>
-            <div className="min-h-screen font-inter bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-200">
-              <Sidebar />
-              <div className="lg:pl-64 flex flex-col min-h-screen">
-                <Navbar />
-                <Router />
-                <Footer />
-              </div>
-              <ChatBot />
-            </div>
-            <Toaster />
+            <NotificationProvider>
+              <WidgetProvider>
+                <div className="min-h-screen font-inter bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-200">
+                  <Sidebar />
+                  <div className="lg:pl-64 flex flex-col min-h-screen">
+                    <Navbar />
+                    <Router />
+                    <Footer />
+                  </div>
+                  <ChatBot />
+                </div>
+                <Toaster />
+              </WidgetProvider>
+            </NotificationProvider>
           </ChatProvider>
         </SidebarProvider>
       </ThemeProvider>
