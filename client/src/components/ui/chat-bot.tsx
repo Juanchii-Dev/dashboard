@@ -1,7 +1,7 @@
 import { useChat } from "@/context/chat-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Robot, User, Send } from "lucide-react";
+import { X, Bot, User, Send } from "lucide-react";
 import { useRef, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -40,7 +40,7 @@ export function ChatBot() {
       <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center">
           <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center">
-            <Robot className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+            <Bot className="h-5 w-5 text-primary-600 dark:text-primary-400" />
           </div>
           <div className="ml-3">
             <h3 className="text-lg font-medium text-gray-900 dark:text-white">Asistente Financiero</h3>
@@ -63,7 +63,7 @@ export function ChatBot() {
           >
             {message.role === "bot" && (
               <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center">
-                <Robot className="h-4 w-4 text-primary-600 dark:text-primary-400" />
+                <Bot className="h-4 w-4 text-primary-600 dark:text-primary-400" />
               </div>
             )}
             <div
@@ -88,7 +88,7 @@ export function ChatBot() {
         {isTyping && (
           <div className="flex items-start mb-4">
             <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center">
-              <Robot className="h-4 w-4 text-primary-600 dark:text-primary-400" />
+              <Bot className="h-4 w-4 text-primary-600 dark:text-primary-400" />
             </div>
             <div className="ml-3 bg-gray-100 dark:bg-gray-700 py-3 px-4 rounded-lg rounded-tl-none">
               <div className="typing-indicator">
@@ -114,7 +114,7 @@ export function ChatBot() {
           />
           <Button 
             type="submit"
-            variant="primary"
+            variant="default"
             size="icon"
             className="inline-flex items-center ml-2 p-2 border border-transparent rounded-full shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary dark:focus:ring-offset-gray-800"
           >
