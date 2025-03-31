@@ -79,11 +79,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Cambiamos el nombre de la función para evitar problemas con HMR de React
-export const useChat = () => {
+// Extraemos la función a una constante nombrada para mejor compatibilidad con HMR
+const useChatContext = () => {
   const context = useContext(ChatContext);
   if (context === undefined) {
     throw new Error("useChat must be used within a ChatProvider");
   }
   return context;
-}
+};
+
+// Exportamos con un nombre diferente
+export { useChatContext as useChat };

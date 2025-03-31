@@ -16,7 +16,6 @@ export async function sendChatMessage(message: string): Promise<string> {
   const MAX_RETRIES = 3; 
   // Tiempo base para el retardo exponencial (ms)
   const BASE_DELAY = 1000;
-  let retryCount = 0;
   
   const attemptSend = async (retryCount: number): Promise<string> => {
     try {
@@ -27,7 +26,14 @@ export async function sendChatMessage(message: string): Promise<string> {
         console.log(`Reintentando envío de mensaje (intento ${retryCount + 1})...`);
       }
       
-      const response = await apiRequest("POST", "/api/chat", { message });
+      const response = await apiRequest("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ message })
+      });
+      
       const data = await response.json();
       return data.response;
     } catch (error) {
@@ -44,7 +50,7 @@ export async function sendChatMessage(message: string): Promise<string> {
     }
   };
   
-  return attemptSend(retryCount);
+  return attemptSend(0);
 }
 
 /**
@@ -65,13 +71,9 @@ export async function getDashboardData(): Promise<DashboardData> {
         console.log(`Reintentando obtener datos del dashboard (intento ${retryCount + 1})...`);
       }
       
-      const response = await fetch("/api/dashboard");
-      
-      if (!response.ok) {
-        throw new Error(`Error fetching dashboard data: ${response.status} ${response.statusText}`);
-      }
-      
-      return await response.json();
+      const response = await apiRequest("/api/dashboard");
+      const data = await response.json();
+      return data;
     } catch (error) {
       console.error(`Error en intento ${retryCount + 1}:`, error);
       
