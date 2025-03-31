@@ -45,16 +45,17 @@ export default function Configuracion() {
         </div>
         
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-6 mb-8">
-            <TabsTrigger value="general">General</TabsTrigger>
-            <TabsTrigger value="cuenta">Cuenta</TabsTrigger>
-            <TabsTrigger value="notificaciones">Notificaciones</TabsTrigger>
-            <TabsTrigger value="seguridad">Seguridad</TabsTrigger>
-            <TabsTrigger value="pagos">Métodos de pago</TabsTrigger>
-            <TabsTrigger value="bank-connections">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-6 mb-8 overflow-x-auto">
+            <TabsTrigger value="general" className="text-sm">General</TabsTrigger>
+            <TabsTrigger value="cuenta" className="text-sm">Cuenta</TabsTrigger>
+            <TabsTrigger value="notificaciones" className="text-sm">Notificaciones</TabsTrigger>
+            <TabsTrigger value="seguridad" className="text-sm">Seguridad</TabsTrigger>
+            <TabsTrigger value="pagos" className="text-sm">Métodos de pago</TabsTrigger>
+            <TabsTrigger value="bank-connections" className="text-sm">
               <div className="flex items-center gap-1.5">
                 <Building2 className="h-4 w-4" />
-                <span>Conexiones bancarias</span>
+                <span className="hidden md:inline">Conexiones bancarias</span>
+                <span className="md:hidden">Bancos</span>
               </div>
             </TabsTrigger>
           </TabsList>
@@ -160,7 +161,7 @@ export default function Configuracion() {
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="firstName">Nombre</Label>
                       <Input id="firstName" defaultValue="Carlos" />

@@ -69,8 +69,12 @@ export function BankConnectionsSection() {
   });
 
   // Filtrar cuentas conectadas y desconectadas
-  const connectedAccounts = accountsQuery.data?.filter(acc => acc.isConnected) || [];
-  const disconnectedAccounts = accountsQuery.data?.filter(acc => !acc.isConnected) || [];
+  const connectedAccounts = Array.isArray(accountsQuery.data) 
+    ? accountsQuery.data.filter(acc => acc.isConnected) 
+    : [];
+  const disconnectedAccounts = Array.isArray(accountsQuery.data) 
+    ? accountsQuery.data.filter(acc => !acc.isConnected) 
+    : [];
 
   // Manejar la sincronización de datos bancarios
   const handleSyncData = async () => {
