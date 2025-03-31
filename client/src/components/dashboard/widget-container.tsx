@@ -43,10 +43,10 @@ export function WidgetContainer({
     setIsExpanded(!isExpanded);
   };
 
-  // Determinar clases basadas en el tamaño
+  // Determinar clases basadas en el tamaño con mejor soporte responsive
   const sizeClasses = {
-    small: "col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3",
-    medium: "col-span-12 sm:col-span-6 lg:col-span-6",
+    small: "col-span-12 sm:col-span-6 md:col-span-6 lg:col-span-4 xl:col-span-3",
+    medium: "col-span-12 sm:col-span-12 md:col-span-6 lg:col-span-6",
     large: "col-span-12"
   };
 

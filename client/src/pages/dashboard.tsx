@@ -58,28 +58,28 @@ function WidgetCustomizationDialog({ isOpen, onClose }: WidgetDialogProps) {
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle>Personalizar Panel</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-xl">Personalizar Panel</DialogTitle>
+          <DialogDescription className="text-sm sm:text-base">
             Configura qué widgets quieres ver en tu dashboard y cómo quieres organizarlos.
           </DialogDescription>
         </DialogHeader>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
           <TabsList className="grid grid-cols-2 w-full">
-            <TabsTrigger value="current">Widgets Actuales</TabsTrigger>
-            <TabsTrigger value="hidden">Widgets Disponibles</TabsTrigger>
+            <TabsTrigger value="current" className="text-xs sm:text-sm">Widgets Actuales</TabsTrigger>
+            <TabsTrigger value="hidden" className="text-xs sm:text-sm">Widgets Disponibles</TabsTrigger>
           </TabsList>
           
           <TabsContent value="current" className="space-y-4 pt-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-medium">Widgets Visibles ({visibleWidgets.length})</h2>
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+              <h2 className="text-base sm:text-lg font-medium">Widgets Visibles ({visibleWidgets.length})</h2>
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={handleReset}
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 w-full sm:w-auto"
               >
                 <RotateCcw className="h-4 w-4" />
                 Restaurar predeterminados
@@ -87,8 +87,8 @@ function WidgetCustomizationDialog({ isOpen, onClose }: WidgetDialogProps) {
             </div>
             
             {visibleWidgets.length === 0 ? (
-              <div className="py-10 text-center border rounded-md bg-muted/20">
-                <p className="text-muted-foreground">No hay widgets visibles. Añade algunos desde la pestaña Widgets Disponibles.</p>
+              <div className="py-8 sm:py-10 text-center border rounded-md bg-muted/20">
+                <p className="text-sm text-muted-foreground px-2">No hay widgets visibles. Añade algunos desde la pestaña Widgets Disponibles.</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -96,23 +96,23 @@ function WidgetCustomizationDialog({ isOpen, onClose }: WidgetDialogProps) {
                   .sort((a, b) => a.position - b.position)
                   .map(widget => (
                     <Card key={widget.id} className="overflow-hidden">
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-center">
+                      <CardContent className="p-3 sm:p-4">
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                           <div className="flex items-center gap-2">
                             <Checkbox 
                               id={`visible-${widget.id}`} 
                               checked={widget.visible}
                               onCheckedChange={(checked) => toggleWidgetVisibility(widget.id, checked as boolean)}
                             />
-                            <Label htmlFor={`visible-${widget.id}`} className="font-medium">{widget.title}</Label>
+                            <Label htmlFor={`visible-${widget.id}`} className="font-medium text-sm sm:text-base">{widget.title}</Label>
                           </div>
                           
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
                             <Select 
                               value={widget.size} 
                               onValueChange={(value) => changeWidgetSize(widget.id, value as Widget["size"])}
                             >
-                              <SelectTrigger className="w-[120px] h-8">
+                              <SelectTrigger className="w-[110px] sm:w-[120px] h-8 text-xs sm:text-sm">
                                 <SelectValue placeholder="Tamaño" />
                               </SelectTrigger>
                               <SelectContent>
@@ -125,6 +125,7 @@ function WidgetCustomizationDialog({ isOpen, onClose }: WidgetDialogProps) {
                             <Button 
                               variant="ghost" 
                               size="sm"
+                              className="text-xs sm:text-sm"
                               onClick={() => toggleWidgetVisibility(widget.id, false)}
                             >
                               Ocultar
@@ -140,12 +141,12 @@ function WidgetCustomizationDialog({ isOpen, onClose }: WidgetDialogProps) {
           
           <TabsContent value="hidden" className="space-y-4 pt-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-lg font-medium">Widgets Disponibles ({hiddenWidgets.length})</h2>
+              <h2 className="text-base sm:text-lg font-medium">Widgets Disponibles ({hiddenWidgets.length})</h2>
             </div>
             
             {hiddenWidgets.length === 0 ? (
-              <div className="py-10 text-center border rounded-md bg-muted/20">
-                <p className="text-muted-foreground">No hay widgets ocultos. Todos los widgets están visibles en el dashboard.</p>
+              <div className="py-8 sm:py-10 text-center border rounded-md bg-muted/20">
+                <p className="text-sm text-muted-foreground px-2">No hay widgets ocultos. Todos los widgets están visibles en el dashboard.</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -153,20 +154,21 @@ function WidgetCustomizationDialog({ isOpen, onClose }: WidgetDialogProps) {
                   .sort((a, b) => a.position - b.position)
                   .map(widget => (
                     <Card key={widget.id} className="overflow-hidden">
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-center">
+                      <CardContent className="p-3 sm:p-4">
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                           <div className="flex items-center gap-2">
                             <Checkbox 
                               id={`hidden-${widget.id}`} 
                               checked={widget.visible}
                               onCheckedChange={(checked) => toggleWidgetVisibility(widget.id, checked as boolean)}
                             />
-                            <Label htmlFor={`hidden-${widget.id}`} className="font-medium">{widget.title}</Label>
+                            <Label htmlFor={`hidden-${widget.id}`} className="font-medium text-sm sm:text-base">{widget.title}</Label>
                           </div>
                           
                           <Button 
                             variant="outline" 
                             size="sm"
+                            className="text-xs sm:text-sm w-full sm:w-auto"
                             onClick={() => toggleWidgetVisibility(widget.id, true)}
                           >
                             Mostrar
@@ -236,18 +238,18 @@ export default function Dashboard() {
       <main className="flex-1 pb-8 page-content">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           {/* Encabezado con botones de acción */}
-          <div className="lg:flex lg:items-center lg:justify-between mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-3">
             <div className="flex-1 min-w-0">
-              <h2 className="text-2xl font-bold leading-7 text-gray-900 dark:text-white sm:text-3xl sm:truncate">
+              <h2 className="text-xl font-bold leading-7 text-gray-900 dark:text-white sm:text-2xl md:text-3xl">
                 Panel Principal
               </h2>
             </div>
-            <div className="mt-5 flex flex-wrap gap-2 lg:mt-0 lg:ml-4">
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsWidgetDialogOpen(true)}
-                className="inline-flex items-center"
+                className="flex items-center justify-center w-full sm:w-auto"
               >
                 <Grid3X3 className="mr-2 h-4 w-4" />
                 Personalizar panel
@@ -255,7 +257,7 @@ export default function Dashboard() {
               <Button
                 size="sm"
                 onClick={() => window.location.reload()}
-                className="inline-flex items-center"
+                className="flex items-center justify-center w-full sm:w-auto"
               >
                 <RefreshCcw className="mr-2 h-4 w-4" />
                 Actualizar datos
@@ -264,12 +266,12 @@ export default function Dashboard() {
           </div>
 
           {/* Dashboard de widgets */}
-          <div className="grid grid-cols-12 gap-4">
+          <div className="grid grid-cols-12 gap-2 sm:gap-4">
             {visibleWidgets.length === 0 ? (
-              <div className="col-span-12 py-20 flex flex-col items-center justify-center text-center border rounded-md bg-muted/20">
-                <Layers className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-xl font-medium mb-2">No hay widgets configurados</h3>
-                <p className="text-muted-foreground mb-4 max-w-md">
+              <div className="col-span-12 py-10 sm:py-20 flex flex-col items-center justify-center text-center border rounded-md bg-muted/20">
+                <Layers className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-3 sm:mb-4" />
+                <h3 className="text-lg sm:text-xl font-medium mb-2">No hay widgets configurados</h3>
+                <p className="text-sm sm:text-base text-muted-foreground mb-4 max-w-md px-4">
                   Tu dashboard está vacío. Personaliza tu experiencia añadiendo algunos widgets para monitorizar tus finanzas.
                 </p>
                 <Button onClick={() => setIsWidgetDialogOpen(true)}>
@@ -291,16 +293,27 @@ export default function Dashboard() {
           </div>
 
           {/* Botones para acciones rápidas en la parte inferior */}
-          <div className="mt-8 flex justify-center space-x-4">
-            <Button onClick={() => setIsTransactionFormOpen(true)}>
+          <div className="mt-6 sm:mt-8 grid grid-cols-1 sm:flex sm:flex-wrap justify-center gap-2 sm:space-x-4">
+            <Button 
+              className="w-full sm:w-auto" 
+              onClick={() => setIsTransactionFormOpen(true)}
+            >
               <Plus className="mr-2 h-4 w-4" />
               Registrar transacción
             </Button>
-            <Button variant="outline" onClick={() => setIsBudgetFormOpen(true)}>
+            <Button 
+              variant="outline" 
+              className="w-full sm:w-auto mt-2 sm:mt-0" 
+              onClick={() => setIsBudgetFormOpen(true)}
+            >
               <Plus className="mr-2 h-4 w-4" />
               Nuevo presupuesto
             </Button>
-            <Button variant="outline" onClick={() => setIsGoalFormOpen(true)}>
+            <Button 
+              variant="outline" 
+              className="w-full sm:w-auto mt-2 sm:mt-0" 
+              onClick={() => setIsGoalFormOpen(true)}
+            >
               <Plus className="mr-2 h-4 w-4" />
               Nueva meta
             </Button>
