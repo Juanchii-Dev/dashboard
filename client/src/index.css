@@ -44,6 +44,14 @@ html {
 /* Optimización imágenes y SVG */
 img, svg {
   transform: translateZ(0);
+  contain: paint;
+}
+
+/* Optimización específica para iconos SVG */
+svg.icon, .icon svg {
+  transform: translateZ(0);
+  contain: strict;
+  paint-order: stroke;
 }
 
 /* Prevenir repaints en animaciones */
@@ -87,5 +95,30 @@ h1, h2, h3, h4, h5, h6, p {
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+/* Animaciones para transiciones entre páginas */
+.page-transition-container {
+  position: relative;
+  min-height: 60vh;
+  overflow: hidden;
+}
+
+.page-transition {
+  animation: pageTransition 0.3s ease-out;
+  will-change: opacity, transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+@keyframes pageTransition {
+  0% {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

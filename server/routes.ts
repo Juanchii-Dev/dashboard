@@ -1,25 +1,42 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
+import { ZodError } from "zod";
 
 // Inicializar OpenAI para el chatbot
+// Comprobamos que la clave API exista o usamos un valor predeterminado
+// que activará el modo de respaldo
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY || "sk-demo-key",
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Función auxiliar para manejo de errores
+  const handleError = (res: Response, error: unknown) => {
+    console.error("Error en la API:", error);
+    if (error instanceof ZodError) {
+      return res.status(400).json({ 
+        message: "Error de validación", 
+        errors: error.errors 
+      });
+    }
+    
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+    res.status(400).json({ message: errorMessage });
+  };
+
   // Rutas API para usuarios
-  app.post("/api/register", async (req, res) => {
+  app.post("/api/register", async (req: Request, res: Response) => {
     try {
       const user = await storage.createUser(req.body);
       res.status(201).json(user);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
+    } catch (error: unknown) {
+      handleError(res, error);
     }
   });
 
-  app.post("/api/login", async (req, res) => {
+  app.post("/api/login", async (req: Request, res: Response) => {
     try {
       const { username, password } = req.body;
       const user = await storage.authenticateUser(username, password);
@@ -28,8 +45,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
       res.status(200).json({ user });
-    } catch (error) {
-      res.status(400).json({ message: error.message });
+    } catch (error: unknown) {
+      handleError(res, error);
     }
   });
 
@@ -142,7 +159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Ruta API para el chatbot
-  app.post("/api/chat", async (req, res) => {
+  app.post("/api/chat", async (req: Request, res: Response) => {
     try {
       const { message } = req.body;
       const userId = 1; // Usuario de ejemplo
@@ -172,8 +189,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             max_tokens: 300,
           });
 
-          botResponse = response.choices[0].message.content;
-        } catch (error) {
+          // Asegurarse de que nunca sea null
+          const content = response.choices[0]?.message?.content;
+          botResponse = content || getDefaultBotResponse(message);
+        } catch (error: unknown) {
           console.error("Error con OpenAI:", error);
           botResponse = getDefaultBotResponse(message);
         }
@@ -190,8 +209,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       res.status(200).json({ response: botResponse });
-    } catch (error) {
-      res.status(400).json({ message: error.message });
+    } catch (error: unknown) {
+      handleError(res, error);
     }
   });
 

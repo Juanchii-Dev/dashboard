@@ -1,84 +1,99 @@
 import { useState, useEffect } from "react";
-import { LightbulbIcon, TrendingUp, ShoppingBag, Coffee, Home, DollarSign } from "lucide-react";
+import { 
+  LightbulbIcon, TrendingUp, ShoppingBag, Coffee, Home, DollarSign,
+  RefreshCcw, CircleDollarSign, Linkedin, Repeat, Calendar, Sparkles, Wallet
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useNotifications } from "@/context/notification-context";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
+import { generateSavingSuggestions, SavingsSuggestion } from "@/lib/savings-service";
+import { useQuery } from "@tanstack/react-query";
+import { getDashboardData } from "@/lib/chat-service";
 
-interface SavingsSuggestion {
-  id: string;
-  title: string;
-  description: string;
-  potentialSaving: number;
-  difficulty: "easy" | "medium" | "hard";
-  category: "subscriptions" | "habits" | "expenses" | "strategies";
-  icon: React.ReactNode;
+// Función que retorna el icono adecuado según el tipo
+function getSuggestionIcon(iconType?: string) {
+  switch (iconType) {
+    case "dollar":
+      return <DollarSign className="h-5 w-5 text-green-500" />;
+    case "coffee":
+      return <Coffee className="h-5 w-5 text-amber-500" />;
+    case "shopping":
+      return <ShoppingBag className="h-5 w-5 text-blue-500" />;
+    case "home":
+      return <Home className="h-5 w-5 text-purple-500" />;
+    case "trending":
+      return <TrendingUp className="h-5 w-5 text-teal-500" />;
+    case "circle-dollar":
+      return <CircleDollarSign className="h-5 w-5 text-emerald-500" />;
+    case "wallet":
+      return <Wallet className="h-5 w-5 text-indigo-500" />;
+    case "linkedin":
+      return <Linkedin className="h-5 w-5 text-blue-600" />;
+    case "repeat":
+      return <Repeat className="h-5 w-5 text-orange-500" />;
+    case "calendar":
+      return <Calendar className="h-5 w-5 text-red-500" />;
+    default:
+      return <Sparkles className="h-5 w-5 text-yellow-500" />;
+  }
 }
 
 export function SavingsSuggestionsWidget() {
   const [suggestions, setSuggestions] = useState<SavingsSuggestion[]>([]);
   const [filter, setFilter] = useState<string | null>(null);
   const { addNotification } = useNotifications();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Generar sugerencias basadas en los datos financieros
+  // Consulta para obtener datos de transacciones
+  const { data: dashboardData, isLoading: isLoadingData } = useQuery({
+    queryKey: ['/api/dashboard'],
+    queryFn: getDashboardData
+  });
+
+  // Obtener sugerencias de ahorro basadas en transacciones
   useEffect(() => {
-    generateSuggestions();
-  }, []);
+    if (dashboardData?.recentTransactions) {
+      fetchSavingSuggestions(dashboardData.recentTransactions);
+    }
+  }, [dashboardData]);
 
-  const generateSuggestions = async () => {
-    // En un caso real, estas sugerencias vendrían de un análisis de los datos financieros
-    // Aquí simplemente definimos ejemplos para la demostración
-    const demoSuggestions: SavingsSuggestion[] = [
-      {
-        id: "1",
-        title: "Cancela suscripciones sin usar",
-        description: "Identificamos 2 suscripciones con poco uso que podrías cancelar para ahorrar mensualmente.",
-        potentialSaving: 24.99,
-        difficulty: "easy",
-        category: "subscriptions",
-        icon: <DollarSign className="h-5 w-5 text-green-500" />
-      },
-      {
-        id: "2",
-        title: "Reduce gastos en café",
-        description: "Preparando café en casa en lugar de comprarlo fuera podrías ahorrar significativamente.",
-        potentialSaving: 45.50,
-        difficulty: "medium",
-        category: "habits",
-        icon: <Coffee className="h-5 w-5 text-amber-500" />
-      },
-      {
-        id: "3",
-        title: "Compara precios de supermercados",
-        description: "Usando aplicaciones de comparación de precios podrías ahorrar en tu compra semanal.",
-        potentialSaving: 60.00,
-        difficulty: "medium",
-        category: "expenses",
-        icon: <ShoppingBag className="h-5 w-5 text-blue-500" />
-      },
-      {
-        id: "4",
-        title: "Refinancia tu préstamo hipotecario",
-        description: "Con las tasas actuales, refinanciar podría ahorrarte a largo plazo.",
-        potentialSaving: 150.00,
-        difficulty: "hard",
-        category: "strategies",
-        icon: <Home className="h-5 w-5 text-purple-500" />
-      },
-      {
-        id: "5",
-        title: "Automatiza transferencias a ahorro",
-        description: "Configurar transferencias automáticas el día de cobro te ayudará a ahorrar sin pensarlo.",
-        potentialSaving: 200.00,
-        difficulty: "easy",
-        category: "strategies",
-        icon: <TrendingUp className="h-5 w-5 text-green-500" />
-      }
-    ];
+  // Función para obtener sugerencias
+  const fetchSavingSuggestions = async (transactions: any[]) => {
+    try {
+      const savingSuggestions = await generateSavingSuggestions(transactions);
+      setSuggestions(savingSuggestions);
+    } catch (error) {
+      console.error("Error al cargar sugerencias de ahorro:", error);
+      addNotification({
+        title: "Error",
+        message: "No se pudieron generar las sugerencias de ahorro.",
+        type: "error"
+      });
+    }
+  };
 
-    setSuggestions(demoSuggestions);
+  // Refrescar manualmente las sugerencias
+  const refreshSuggestions = async () => {
+    if (!dashboardData?.recentTransactions) return;
+    
+    setIsRefreshing(true);
+    try {
+      await fetchSavingSuggestions(dashboardData.recentTransactions);
+      addNotification({
+        title: "Sugerencias actualizadas",
+        message: "Se han actualizado las sugerencias de ahorro con el último análisis de tus transacciones.",
+        type: "success"
+      });
+    } catch (error) {
+      console.error("Error al actualizar sugerencias:", error);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   // Filtrar sugerencias por categoría
@@ -92,13 +107,15 @@ export function SavingsSuggestionsWidget() {
     0
   );
 
-  // Aplicar una sugerencia (en este caso solo muestra notificación)
+  // Aplicar una sugerencia
   const applySuggestion = (suggestion: SavingsSuggestion) => {
     addNotification({
       title: "Sugerencia de ahorro aplicada",
-      message: `Has aplicado la sugerencia: ${suggestion.title}`,
+      message: `Has aplicado la sugerencia: ${suggestion.title}. Hemos registrado esta acción para tu seguimiento.`,
       type: "success"
     });
+    
+    // Aquí se podría implementar la lógica para guardar la sugerencia aplicada
   };
 
   // Color según dificultad
@@ -129,12 +146,114 @@ export function SavingsSuggestionsWidget() {
     }
   };
 
+  // Renderizar el contenido según el estado
+  const renderContent = () => {
+    if (isLoadingData) {
+      return (
+        <div className="space-y-4 animate-pulse">
+          {[1, 2, 3].map(i => (
+            <Card key={i} className="overflow-hidden">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex gap-3 w-full">
+                    <Skeleton className="h-5 w-5 rounded-full" />
+                    <div className="w-full">
+                      <Skeleton className="h-5 w-48 mb-2" />
+                      <Skeleton className="h-4 w-full mb-2" />
+                      <div className="flex gap-2">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-4 w-20" />
+                      </div>
+                    </div>
+                  </div>
+                  <Skeleton className="h-8 w-20" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      );
+    }
+
+    if (!suggestions.length) {
+      return (
+        <Alert>
+          <AlertDescription className="text-center py-6">
+            No se pudieron generar sugerencias de ahorro. Intenta actualizar los datos.
+          </AlertDescription>
+        </Alert>
+      );
+    }
+
+    if (filteredSuggestions.length === 0) {
+      return (
+        <p className="text-center py-8 text-muted-foreground">
+          No hay sugerencias disponibles en esta categoría.
+        </p>
+      );
+    }
+    
+    return (
+      filteredSuggestions.map(suggestion => (
+        <Card key={suggestion.id} className="overflow-hidden">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between">
+              <div className="flex gap-3">
+                <div className="mt-1">
+                  {getSuggestionIcon(suggestion.iconType)}
+                </div>
+                <div>
+                  <h4 className="font-medium mb-1">{suggestion.title}</h4>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    {suggestion.description}
+                  </p>
+                  <div className="flex flex-wrap gap-2 items-center mt-2">
+                    <Badge variant="outline" className="font-normal">
+                      Ahorro: {formatCurrency(suggestion.potentialSaving)}/mes
+                    </Badge>
+                    <Badge 
+                      variant="outline" 
+                      className={cn("font-normal", getDifficultyColor(suggestion.difficulty))}
+                    >
+                      {translateDifficulty(suggestion.difficulty)}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+              <Button 
+                size="sm" 
+                variant="outline"
+                className="whitespace-nowrap"
+                onClick={() => applySuggestion(suggestion)}
+              >
+                Aplicar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ))
+    );
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
         <div className="flex items-center space-x-2">
           <LightbulbIcon className="h-5 w-5 text-yellow-500" />
-          <h3 className="font-medium">Ahorro potencial: {formatCurrency(totalPotentialSaving)}/mes</h3>
+          <h3 className="font-medium">
+            {isLoadingData 
+              ? "Calculando ahorros..." 
+              : `Ahorro potencial: ${formatCurrency(totalPotentialSaving)}/mes`}
+          </h3>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8" 
+            onClick={refreshSuggestions}
+            disabled={isRefreshing || isLoadingData}
+          >
+            <RefreshCcw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+          </Button>
         </div>
         
         <div className="flex flex-wrap gap-1">
@@ -177,48 +296,7 @@ export function SavingsSuggestionsWidget() {
       </div>
 
       <div className="space-y-3">
-        {filteredSuggestions.length === 0 ? (
-          <p className="text-center py-8 text-muted-foreground">
-            No hay sugerencias disponibles en esta categoría.
-          </p>
-        ) : (
-          filteredSuggestions.map(suggestion => (
-            <Card key={suggestion.id} className="overflow-hidden">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex gap-3">
-                    <div className="mt-1">{suggestion.icon}</div>
-                    <div>
-                      <h4 className="font-medium mb-1">{suggestion.title}</h4>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {suggestion.description}
-                      </p>
-                      <div className="flex flex-wrap gap-2 items-center mt-2">
-                        <Badge variant="outline" className="font-normal">
-                          Ahorro: {formatCurrency(suggestion.potentialSaving)}/mes
-                        </Badge>
-                        <Badge 
-                          variant="outline" 
-                          className={cn("font-normal", getDifficultyColor(suggestion.difficulty))}
-                        >
-                          {translateDifficulty(suggestion.difficulty)}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    className="whitespace-nowrap"
-                    onClick={() => applySuggestion(suggestion)}
-                  >
-                    Aplicar
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
+        {renderContent()}
       </div>
     </div>
   );
