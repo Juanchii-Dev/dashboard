@@ -5,7 +5,8 @@ import OpenAI from "openai";
 import { ZodError } from "zod";
 import * as bankConnections from "./bank-connections";
 import { 
-  registerUserSchema, 
+  registerUserSchema,
+  registerUserSchemaBackend,
   loginSchema, 
   twoFactorSchema, 
   forgotPasswordSchema, 
@@ -66,10 +67,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Rutas de autenticación
   app.post("/api/register", async (req: Request, res: Response) => {
     try {
+      // Validar los datos del formulario con el esquema completo (incluye confirmPassword)
       const validatedData = registerUserSchema.parse(req.body);
       
-      // Excluir confirmPassword antes de pasarlo al servicio
-      const { confirmPassword, ...userData } = validatedData;
+      // Usar el esquema sin confirmPassword para autenticación
+      const userData = registerUserSchemaBackend.parse(validatedData);
       
       const result = await authService.registerUser(storage, userData);
       
@@ -82,7 +84,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email_verified: result.user.email_verified
         },
         token: result.token,
-        message: "Usuario registrado exitosamente. Por favor verifica tu correo electrónico."
+        message: "Usuario registrado exitosamente."
       });
     } catch (error: unknown) {
       handleError(res, error);

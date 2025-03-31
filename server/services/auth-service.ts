@@ -115,19 +115,20 @@ export async function registerUser(storage: IStorage, userData: RegisterUser): P
   // Encriptar la contraseña
   const hashedPassword = await hashPassword(userData.password);
 
-  // Crear el usuario
+  // Crear el usuario - Para desarrollo, marcamos el email como verificado automáticamente
   const newUser = await storage.createUser({
     email: userData.email,
     password: hashedPassword,
-    username: userData.username,
-    name: userData.name,
+    username: userData.username || null,
+    name: userData.name || null,
   });
 
-  // Crear token de verificación de correo
-  const verificationToken = await createVerificationToken(storage, newUser.id, 'email_verification');
+  // En un entorno de desarrollo, marcamos el email como verificado
+  await storage.updateUserEmailVerification(newUser.id, true);
 
-  // Enviar correo de verificación
-  await sendVerificationEmail(newUser.email, verificationToken);
+  // En producción, enviaríamos un correo de verificación
+  // const verificationToken = await createVerificationToken(storage, newUser.id, 'email_verification');
+  // await sendVerificationEmail(newUser.email, verificationToken);
 
   // Generar JWT para la sesión inicial
   const token = generateJWT(newUser);

@@ -117,20 +117,29 @@ export const insertUserSchema = createInsertSchema(users).pick({
   name: true,
 });
 
-export const registerUserSchema = z.object({
+// Esquema base de registro sin validación de contraseñas
+const registerUserBase = {
   email: z.string().email({ message: "El correo electrónico no es válido" }),
   password: z.string().min(8, { message: "La contraseña debe tener al menos 8 caracteres" })
     .regex(/[A-Z]/, { message: "La contraseña debe tener al menos una letra mayúscula" })
     .regex(/[a-z]/, { message: "La contraseña debe tener al menos una letra minúscula" })
     .regex(/[0-9]/, { message: "La contraseña debe tener al menos un número" })
     .regex(/[^A-Za-z0-9]/, { message: "La contraseña debe tener al menos un carácter especial" }),
-  confirmPassword: z.string(),
   username: z.string().min(3, { message: "El nombre de usuario debe tener al menos 3 caracteres" }).optional(),
   name: z.string().optional(),
+};
+
+// Esquema para el frontend con confirmPassword
+export const registerUserSchema = z.object({
+  ...registerUserBase,
+  confirmPassword: z.string()
 }).refine(data => data.password === data.confirmPassword, {
   message: "Las contraseñas no coinciden",
   path: ["confirmPassword"],
 });
+
+// Esquema sin confirmPassword para el backend
+export const registerUserSchemaBackend = z.object(registerUserBase);
 
 export const loginSchema = z.object({
   email: z.string().email({ message: "El correo electrónico no es válido" }),

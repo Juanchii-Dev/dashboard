@@ -131,15 +131,7 @@ export class MemStorage implements IStorage {
   
   // Inicializar datos de ejemplo
   private initializeData() {
-    // Crear usuario de ejemplo
-    const exampleUser: InsertUser = {
-      username: "carlos",
-      password: "123456", // En producción usaríamos hash
-      name: "Carlos Rodríguez",
-      email: "carlos@example.com",
-    };
-    
-    this.createUser(exampleUser);
+    // No inicializamos ningún usuario por defecto para evitar conflictos
   }
   
   // Implementación de métodos para usuarios
