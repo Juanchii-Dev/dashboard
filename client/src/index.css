@@ -11,3 +11,81 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+/* Optimizaciones para transiciones de página */
+.page-content {
+  animation: fadeIn 0.3s ease-in-out;
+  will-change: opacity, transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Optimizaciones para scrolling suave */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Mejoras de rendimiento general */
+* {
+  text-rendering: optimizeSpeed;
+}
+
+/* Optimización imágenes y SVG */
+img, svg {
+  transform: translateZ(0);
+}
+
+/* Prevenir repaints en animaciones */
+.animate-spin, 
+.animate-pulse,
+.animate-bounce {
+  will-change: transform;
+}
+
+/* Optimización de tipografía para evitar saltos de texto */
+h1, h2, h3, h4, h5, h6, p {
+  text-wrap: balance;
+}
+
+/* Optimización para tooltips y modals */
+.tooltip, 
+.dialog,
+.dropdown-content {
+  will-change: opacity, transform;
+  backface-visibility: hidden;
+}
+
+/* Animación para las pestañas en configuración */
+[role="tabpanel"] {
+  animation: fadeIn 0.3s ease-in-out;
+  will-change: opacity, transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Animación para diálogos y modales */
+[role="dialog"] {
+  animation: dialogFadeIn 0.2s ease-out;
+}
+
+@keyframes dialogFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

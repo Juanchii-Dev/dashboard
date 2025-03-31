@@ -45,14 +45,14 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
-      refetchInterval: 5000, // Recargar datos cada 5 segundos
-      refetchOnWindowFocus: true, // Recargar datos cuando la ventana vuelve a estar en foco
-      staleTime: 2000, // Los datos se consideran obsoletos después de 2 segundos
-      retry: true, // Reintentar peticiones fallidas
-      retryDelay: 1000, // Esperar 1 segundo entre reintentos
+      refetchInterval: false, // No recargar datos automáticamente para evitar peticiones excesivas
+      refetchOnWindowFocus: true, // Recargar solo cuando la ventana vuelve a estar en foco
+      staleTime: 10000, // Los datos se consideran obsoletos después de 10 segundos para reducir peticiones
+      retry: 2, // Reintentar peticiones fallidas (máximo 2 veces)
+      retryDelay: 1000 // Esperar 1 segundo entre reintentos
     },
     mutations: {
-      retry: true, // Reintentar mutaciones fallidas
+      retry: 2 // Reintentar mutaciones fallidas (máximo 2 veces)
     },
   },
 });

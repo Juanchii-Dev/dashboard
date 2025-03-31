@@ -37,7 +37,7 @@ export default function Configuracion() {
   };
 
   return (
-    <main className="flex-1 pb-8">
+    <main className="flex-1 pb-8 page-content">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold font-montserrat text-gray-900 dark:text-white">Configuración</h2>

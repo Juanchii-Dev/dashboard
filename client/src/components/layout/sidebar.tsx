@@ -48,6 +48,12 @@ export function Sidebar() {
             <NavItem href="/metas" icon={<Target />} text="Metas financieras" active={location === "/metas"} />
             <NavItem href="/deudas" icon={<CreditCard />} text="Deudas y ahorros" active={location === "/deudas"} />
             <NavItem href="/informes" icon={<PieChart />} text="Informes" active={location === "/informes"} />
+            <NavItem 
+              href="/configuracion" 
+              icon={<User />} 
+              text="Configuración" 
+              active={location === "/configuracion"} 
+            />
           </div>
         </nav>
 
@@ -78,21 +84,33 @@ interface NavItemProps {
 function NavItem({ href, icon, text, active }: NavItemProps) {
   const { close } = useSidebar();
 
+  const handleClick = (e: React.MouseEvent) => {
+    // Prevenir comportamiento por defecto
+    e.preventDefault();
+    
+    // Primero cerrar la barra lateral en móvil
+    close();
+    
+    // Usar history.pushState para navegación más suave
+    window.history.pushState({}, "", href);
+    
+    // Disparar evento popstate para que wouter actualice la ruta
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  };
+
   return (
-    <div 
+    <a 
+      href={href}
       className={cn(
         "w-full flex items-center px-4 py-3 text-base font-medium rounded-md cursor-pointer",
         active
           ? "bg-primary-50 text-primary-700 dark:bg-primary-900/50 dark:text-primary-300"
           : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
       )}
-      onClick={() => {
-        close();
-        window.location.href = href;
-      }}
+      onClick={handleClick}
     >
       <span className="w-5 h-5 mr-3">{icon}</span>
       {text}
-    </div>
+    </a>
   );
 }
