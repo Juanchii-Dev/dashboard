@@ -146,6 +146,11 @@ function Router() {
   // Rutas públicas (no requieren autenticación)
   if (location === "/login" || location === "/registro" || 
       location.startsWith("/reset-password") || location.startsWith("/verificar-email")) {
+    const token = localStorage.getItem("authToken");
+    if (token && location === "/login") {
+      window.location.href = "/dashboard";
+      return null;
+    }
     return (
       <PublicLayout>
         <div className="page-transition-container">

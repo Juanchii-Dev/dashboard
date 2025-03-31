@@ -116,7 +116,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email_verified: result.user.email_verified
         },
         token: result.token,
-        message: "Inicio de sesión exitoso"
+        message: "Inicio de sesión exitoso",
+        redirect: "/dashboard"
       });
     } catch (error: unknown) {
       handleError(res, error);
