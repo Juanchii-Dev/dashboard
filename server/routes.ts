@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
 import { ZodError } from "zod";
+import * as bankConnections from "./bank-connections";
 
 // Inicializar OpenAI para el chatbot
 // Comprobamos que la clave API exista o usamos un valor predeterminado
@@ -271,6 +272,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       handleError(res, error);
     }
   });
+
+  // Rutas para API de conexión bancaria
+  app.get("/api/bank/providers", bankConnections.getProviders);
+  app.post("/api/bank/connect", bankConnections.connectToBank);
+  app.post("/api/bank/verify", bankConnections.verifyConnection);
+  app.get("/api/bank/accounts", bankConnections.getAccounts);
+  app.post("/api/bank/sync", bankConnections.syncBankData);
+  app.post("/api/bank/disconnect", bankConnections.disconnectAccount);
+  app.get("/api/bank/account/:accountId", bankConnections.getAccountDetails);
+  app.get("/api/bank/transactions", bankConnections.getAccountTransactions);
 
   const httpServer = createServer(app);
   return httpServer;

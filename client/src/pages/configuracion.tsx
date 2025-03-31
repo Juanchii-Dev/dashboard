@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/context/theme-context";
-import { Save, User, Bell, Lock, CreditCard, Euro, DollarSign, Languages } from "lucide-react";
+import { Save, User, Bell, Lock, CreditCard, Euro, DollarSign, Languages, Building2 } from "lucide-react";
+import { BankConnectionsSection } from "@/components/bank-connection/bank-connections-section";
 
 export default function Configuracion() {
   const { toast } = useToast();
@@ -44,12 +45,18 @@ export default function Configuracion() {
         </div>
         
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-8">
+          <TabsList className="grid w-full grid-cols-6 mb-8">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="cuenta">Cuenta</TabsTrigger>
             <TabsTrigger value="notificaciones">Notificaciones</TabsTrigger>
             <TabsTrigger value="seguridad">Seguridad</TabsTrigger>
             <TabsTrigger value="pagos">Métodos de pago</TabsTrigger>
+            <TabsTrigger value="bank-connections">
+              <div className="flex items-center gap-1.5">
+                <Building2 className="h-4 w-4" />
+                <span>Conexiones bancarias</span>
+              </div>
+            </TabsTrigger>
           </TabsList>
           
           {/* Pestaña General */}
@@ -377,6 +384,11 @@ export default function Configuracion() {
                 </Button>
               </CardFooter>
             </Card>
+          </TabsContent>
+          
+          {/* Pestaña Conexiones Bancarias */}
+          <TabsContent value="bank-connections">
+            <BankConnectionsSection />
           </TabsContent>
         </Tabs>
       </div>
