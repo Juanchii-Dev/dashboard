@@ -1,4 +1,4 @@
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { useSidebar } from "@/context/sidebar-context";
 import { X, Wallet, ArrowLeftRight, Calculator, Target, CreditCard, PieChart, User } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -79,19 +79,20 @@ function NavItem({ href, icon, text, active }: NavItemProps) {
   const { close } = useSidebar();
 
   return (
-    <Link href={href}>
-      <a
-        className={cn(
-          "w-full flex items-center px-4 py-3 text-base font-medium rounded-md",
-          active
-            ? "bg-primary-50 text-primary-700 dark:bg-primary-900/50 dark:text-primary-300"
-            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
-        )}
-        onClick={() => close()}
-      >
-        <span className="w-5 h-5 mr-3">{icon}</span>
-        {text}
-      </a>
-    </Link>
+    <div 
+      className={cn(
+        "w-full flex items-center px-4 py-3 text-base font-medium rounded-md cursor-pointer",
+        active
+          ? "bg-primary-50 text-primary-700 dark:bg-primary-900/50 dark:text-primary-300"
+          : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
+      )}
+      onClick={() => {
+        close();
+        window.location.href = href;
+      }}
+    >
+      <span className="w-5 h-5 mr-3">{icon}</span>
+      {text}
+    </div>
   );
 }

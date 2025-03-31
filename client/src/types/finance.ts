@@ -51,7 +51,7 @@ export interface DebtSaving {
 export interface ExpenseCategory {
   name: string;
   value: number;
-  color?: string;
+  color: string;
 }
 
 // Datos para el dashboard

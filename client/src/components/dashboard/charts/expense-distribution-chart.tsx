@@ -3,14 +3,9 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTheme } from "@/context/theme-context";
 import { Chart, ArcElement, Tooltip, Legend, DoughnutController } from "chart.js";
+import { ExpenseCategory } from "@/types/finance";
 
 Chart.register(ArcElement, Tooltip, Legend, DoughnutController);
-
-interface ExpenseCategory {
-  name: string;
-  value: number;
-  color: string;
-}
 
 interface ExpenseDistributionChartProps {
   data: ExpenseCategory[];
