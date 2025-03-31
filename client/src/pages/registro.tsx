@@ -19,7 +19,10 @@ const formSchema = z.object({
   name: z.string().optional().or(z.literal("")),
   username: z.string().min(3, "El nombre de usuario debe tener al menos 3 caracteres"),
   email: z.string().email("Introduce un email válido"),
-  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
+  password: z.string()
+    .min(8, "La contraseña debe tener al menos 8 caracteres")
+    .regex(/[A-Z]/, "La contraseña debe tener al menos una letra mayúscula")
+    .regex(/[!@#$%^&*(),.?":{}|<>]/, "La contraseña debe tener al menos un carácter especial"),
   confirmPassword: z.string()
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Las contraseñas no coinciden",
@@ -67,8 +70,8 @@ export default function RegistroPage() {
   
   // Manejar envío del formulario
   const onSubmit = (data: FormData) => {
-    const { confirmPassword, ...registrationData } = data;
-    registerMutation.mutate(registrationData);
+    // Enviamos todos los datos incluyendo confirmPassword
+    registerMutation.mutate(data);
   };
   
   // Si el registro fue exitoso
@@ -166,6 +169,9 @@ export default function RegistroPage() {
                       <Input type="password" placeholder="********" {...field} />
                     </FormControl>
                     <FormMessage />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      La contraseña debe tener al menos 8 caracteres, una letra mayúscula y un carácter especial.
+                    </p>
                   </FormItem>
                 )}
               />

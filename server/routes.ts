@@ -66,7 +66,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Rutas de autenticación
   app.post("/api/register", async (req: Request, res: Response) => {
     try {
-      const userData = registerUserSchema.parse(req.body);
+      const validatedData = registerUserSchema.parse(req.body);
+      
+      // Excluir confirmPassword antes de pasarlo al servicio
+      const { confirmPassword, ...userData } = validatedData;
+      
       const result = await authService.registerUser(storage, userData);
       
       res.status(201).json({
